@@ -114,6 +114,49 @@ class AssemblerError : public std::runtime_error {
         ~AssemblerError() noexcept = default;
 };
 
+/**
+ * @brief 
+ *   An exception class used internally by the RegisterArray.
+ *   Used to indicate allocation errors.
+ */
+class AllocationError : public std::runtime_error {
+    public:
+        /**
+         * @brief
+         *   Construct a new AllocationError object
+         * @param message 
+         *   An information to pass down the stack
+         */
+        AllocationError(const char* message);
+
+        /**
+         * @brief
+         *   Destroy the AllocationError object
+         */
+        ~AllocationError() noexcept = default;
+};
+
+/**
+ * @brief 
+ *   An exception class used internally by the Yun virtual machine.
+ *   Used to signal internal errors
+ */
+class VMError : public std::runtime_error {
+    public:
+        /**
+         * @brief
+         *   Construct a new TypError object
+         * @param message
+         *   An information to pass down the stack
+         */
+        VMError(const char* message);
+
+        /**
+         * @brief
+         *   Destroy the Type Error object
+         */
+        ~VMError() noexcept = default;
+};
 }
 
 #endif

@@ -28,7 +28,7 @@ auto Instruction::Serialize(uint8_t* buffer) -> size_t {
     // Switch on the number of operands
     // and copy the data into the buffer
     // in a safe way.
-    switch (Instructions::OpcodeArgumentCount(_opcode)) {
+    switch (Instructions::OpcodeCount(_opcode)) {
     case 1:
         std::memcpy(&buffer[offset], &_dest, sizeof(_dest));
         return offset + sizeof(_dest);
@@ -56,9 +56,9 @@ auto Emitter::Emit(Instruction instruction) -> void {
     _size += Instructions::OpcodeSize(instruction.Opcode());
 }
 
-auto Emitter::Serialize() -> Instructions::Buffer {
+auto Emitter::Serialize() -> Containers::InstructionBuffer {
     // Allocate buffer using the absolute size
-    Instructions::Buffer buffer{ _size };
+    Containers::InstructionBuffer buffer{ _size };
 
     size_t index = 0;
     for (auto instruction : _instructions)

@@ -25,12 +25,12 @@ SRCEXT           := cpp
 # Files
 #-----------------------------------------------------------
 SRCFILES         := main.cpp \
-                    Primitives.cpp \
+                    Value.cpp \
 					Emit.cpp \
 					Exceptions.cpp \
-					Instructions.cpp \
 					VM.cpp \
-					Assembler.cpp # Source files
+					Assembler.cpp \
+					Containers.cpp # Source files
 export OBJFILES  := $(SRCFILES:%.$(SRCEXT)=%.o)
 DEPFILES         := $(SRCFILES:%.$(SRCEXT)=$(DEPDIR)/%.d)
 

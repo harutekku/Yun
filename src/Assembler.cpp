@@ -14,6 +14,8 @@
  */
 // My header files
 #include "../include/Assembler.hpp"
+#include <algorithm>
+#include <string>
 
 namespace Yun::ASM {
 
@@ -44,6 +46,8 @@ auto Assembler::AddJump(VM::Instructions::Opcode opcode, std::string label) -> v
 }
 
 auto Assembler::AddBinary(VM::Instructions::Opcode opcode, uint32_t dest, uint32_t src) -> void {
+    if (opcode == VM::Instructions::Opcode::ldconst && !_constants.Has(src)) 
+        throw Error::AssemblerError{ "Can't add a new `ldconst` with invalid index" };
     _emitter.Emit(opcode, dest, src);
 }
 
@@ -51,7 +55,7 @@ auto Assembler::AddVoid(VM::Instructions::Opcode opcode) -> void {
     _emitter.Emit(opcode);
 }
 
-auto Assembler::Patch() -> VM::Instructions::Buffer try {
+auto Assembler::Patch(std::string name) -> VM::ExecutionUnit try {
     for (const auto& [jmpOffst, label] : _jumps) {
         auto [jmpRelOffst, jmpAbsOffst] = jmpOffst;
 
@@ -69,7 +73,7 @@ auto Assembler::Patch() -> VM::Instructions::Buffer try {
     }
 
     // Get the final instruction buffer
-    return _emitter.Serialize();
+    return VM::ExecutionUnit{ name, _constants, _emitter.Serialize() };
 } catch (std::out_of_range& e) {
     throw Error::AssemblerError{ "No label found" };
 }

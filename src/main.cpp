@@ -1,29 +1,24 @@
 // C header files
 #include <cstdio>
+#include <iterator>
 // My header files
-#include "../include/Emit.hpp"
+#include "../include/VM.hpp"
 #include "../include/Instructions.hpp"
 #include "../include/Assembler.hpp"
-// L O L : ^ O -->
-#define Slap Patch
 
 auto main(void) -> int try {
     using namespace Yun::VM::Instructions;
+    using namespace Yun::VM;
     using namespace Yun::ASM;
     using enum Yun::VM::Instructions::Opcode;
     
-    Assembler ass{  };
+    Assembler as{  };
 
-    ass.AddJump(jmp, "Label-1");
-    ass.AddVoid(nop);
-    ass.AddVoid(nop);
-    ass.AddBinary(add, 1, 2);
-    ass.AddBinary(add, 3, 4);
-    ass.AddLabel("Label-1");
-    ass.AddVoid(hlt);
+    as.AddLoadConstant(ldconst, 0, 2.0f);
+    as.AddLoadConstant(ldconst, 1, 2.1f);
+    as.AddBinary(fcmp, 0, 1);
 
-    auto res = ass.Slap();
-
+    auto res = as.Patch("Test");
     res.Disassemble();
 
     return 0;

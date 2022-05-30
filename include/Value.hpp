@@ -19,9 +19,12 @@
 // C header files
 #include <cstdint>
 #include <cstring>
+#include <cmath>
 // C++ header files
 #include <string>
 #include <type_traits>
+// My header files
+#include "Exceptions.hpp"
 
 namespace Yun::VM::Primitives {
 
@@ -93,20 +96,21 @@ template<typename T>
         return Type::Float64;
 }
 
+
 class Value {
     public:  // Special member functions
         constexpr Value()
-            :_type{ Type::Uninit } {
+            :_type{ Type::Uninit }, _isOperable{ false } {
         }
 
         template<typename T>
         constexpr Value(T value)
-            :_type{ TAsEnum<T>() } {
+            :_type{ TAsEnum<T>() }, _isOperable{ IsIntegral() || IsFloatingPoint() } {
             As<T>() = value;
         }
 
     public:  // As<T> and Is()
-        [[nodiscard]] constexpr auto Is() noexcept -> Type {
+        [[nodiscard]] constexpr auto Is() const noexcept -> Type {
             return _type;
         }
 
@@ -114,28 +118,204 @@ class Value {
         [[nodiscard]] auto As() noexcept -> T&;
 
         template<typename T>
-        constexpr auto Assign(T value) noexcept -> void {
-            As<T>() = value;
-            _type   = TAsEnum<T>();
+        [[nodiscard]] auto As() const noexcept -> const T&;
+
+        auto Assign(const Value& value) noexcept -> void {
+            _isOperable = value._isOperable;
+            _type = value._type;
+            std::memcpy(&uint64, &value.uint64, sizeof(uint64));
         }
     
+    public:  // Arithmetic operations
+        template<typename T, typename = typename std::enable_if_t<std::is_signed_v<T> || std::is_floating_point_v<T>, T>>
+        constexpr auto Neg() -> void {
+            if (!_isOperable)
+                throw Error::TypeError{ "Inoperable type" };
+            As<T>() = -As<T>();
+        } 
+
+        template<typename T>
+        constexpr auto Add(const Value& value) -> void {
+            if (!_isOperable && Is() != value.Is())
+                throw Error::TypeError{ "Incompatible types" };
+            As<T>() += value.As<T>();
+        }
+
+        template<typename T>
+        constexpr auto Sub(const Value& value) -> void {
+            if (!_isOperable && Is() != value.Is())
+                throw Error::TypeError{ "Incompatible types" };
+            As<T>() -= value.As<T>();
+        }
+
+        template<typename T>
+        constexpr auto Mul(const Value& value) -> void {
+            if (!_isOperable && Is() != value.Is())
+                throw Error::TypeError{ "Incompatible types" };
+            As<T>() *= value.As<T>();
+        }
+
+        template<typename T>
+        constexpr auto Div(const Value& value) -> void {
+            if (!_isOperable && Is() != value.Is())
+                throw Error::TypeError{ "Incompatible types" };
+            if constexpr (std::is_integral_v<T>)
+                if (value.As<T>() == 0)
+                    throw Error::IntegerArithmeticError{ "Division by zero" };
+            As<T>() /= value.As<T>();
+        }
+
+        template<typename T>
+        constexpr auto Rem(const Value& value) -> void {
+            if (!_isOperable && Is() != value.Is())
+                throw Error::TypeError{ "Incompatible types" };
+            if constexpr (std::is_integral_v<T>) {
+                if (value.As<T>() == 0)
+                    throw Error::IntegerArithmeticError{ "Remainder by zero" };
+                As<T>() %= value.As<T>();
+                return;
+            }
+            As<T>() = std::remainder(As<T>(), value.As<T>());
+        }
+
+        template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
+        constexpr auto And(const Value& value) -> void {
+            if (Is() != value.Is() && !IsIntegral())
+                throw Error::TypeError{ "Incompatible types" };
+            As<T>() &= value.As<T>();
+        }
+
+        template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
+        constexpr auto Or(const Value& value) -> void {
+            if (Is() != value.Is() && !IsIntegral())
+                throw Error::TypeError{ "Incompatible types" };
+            As<T>() |= value.As<T>();
+        }
+
+        template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
+        constexpr auto Xor(const Value& value) -> void {
+            if (Is() != value.Is() && !IsIntegral())
+                throw Error::TypeError{ "Incompatible types" };
+            As<T>() ^= value.As<T>();
+        }
+
+        template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
+        constexpr auto ShiftLeft(const Value& value) -> void {
+            if (value.Is() != Type::Uint32 && !IsIntegral())
+                throw Error::TypeError{ "Incompatible types" };
+            As<T>() <<= value.uint32;
+        }
+
+        template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
+        constexpr auto ShiftRight(const Value& value) -> void {
+            if (value.Is() != Type::Uint32 && !IsIntegral())
+                throw Error::TypeError{ "Incompatible types" };
+            As<T>() >>= value.uint32;
+        }
+
+        constexpr auto Not() -> void {
+            if (!IsIntegral())
+                throw Error::TypeError{ "Incompatible type" };
+            uint64 = ~uint64;
+        }
+
+        template<typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>, T>>
+        [[nodiscard]] auto Compare(const Value& value) -> int32_t {
+            if (!_isOperable && Is() != value.Is())
+                throw Error::TypeError{ "Incompatible types" };
+
+            if constexpr (std::is_signed_v<T>) {
+                if (_type == Type::Int32) {
+                    if (int32 < value.int32)
+                        return -1;
+                    else if (int32 > value.int32)
+                        return 1;
+                    else
+                        return 0;
+                } else {
+                    if (int64 < value.int64)
+                        return -1;
+                    else if (int64 > value.int64)
+                        return 1;
+                    else
+                        return 0;
+                }
+            } else if constexpr (std::is_unsigned_v<T>) {
+                if (_type == Type::Uint32) {
+                    if (uint32 < value.uint32)
+                        return -1;
+                    else if (uint32 > value.uint32)
+                        return 1;
+                    else
+                        return 0;
+                } else {
+                    if (uint64 < value.uint64)
+                        return -1;
+                    else if (uint64 > value.uint64)
+                        return 1;
+                    else
+                        return 0;
+                }
+            } else {
+                if (_type == Type::Float32) {
+                    if (float32 < value.float32)
+                        return -1;
+                    else if (float32 > value.float32)
+                        return 1;
+                    else
+                        return 0;
+                } else {
+                    if (float64 < value.float64)
+                        return -1;
+                    else if (float64 > value.float64)
+                        return 1;
+                    else
+                        return 0;
+                }
+            }
+        }
+
+        template<typename From, typename To>
+        constexpr auto Convert() -> void {
+            _type       = TAsEnum<To>();
+            _isOperable = IsIntegral() || IsFloatingPoint();
+            As<From>()  = (To)As<From>();
+        }
+
+    private:
+        [[nodiscard]] constexpr auto IsSigned() const -> bool {
+            return _type == Type::Int32 || _type == Type::Int64;
+        }
+        [[nodiscard]] constexpr auto IsIntegral() const -> bool {
+            return _type == Type::Uint32 ||
+                   _type == Type::Uint64 ||
+                   _type == Type::Int32  || 
+                   _type == Type::Int64;
+        } 
+
+        [[nodiscard]] constexpr auto IsFloatingPoint() const -> bool {
+            return _type == Type::Float32 ||
+                   _type == Type::Float64;
+        }
+
     public:
-        [[nodiscard]] auto ToString() noexcept -> std::string;
+        [[nodiscard]] auto ToString() const noexcept -> std::string;
     
     private: // Member values
         union {
             int8_t   int8;
             int16_t  int16;
             int32_t  int32;
-            int64_t  int64;
+            int64_t  int64;   // These are the defaults
             uint8_t  uint8;
             uint16_t uint16;
             uint32_t uint32;
-            uint64_t uint64;
+            uint64_t uint64;  // These are the defaults
             float    float32;
-            double   float64;
+            double   float64; // These are the defaults
         };
         Type       _type;
+        bool       _isOperable;
 };
 
 }

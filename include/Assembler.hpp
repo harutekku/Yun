@@ -22,8 +22,12 @@
 #include <string>
 #include <map>
 // My header files
+#include "Containers.hpp"
+#include "Exceptions.hpp"
+#include "VM.hpp"
 #include "Emit.hpp"
 #include "Instructions.hpp"
+#include "Value.hpp"
 
 /**
  * @brief 
@@ -144,16 +148,27 @@ class Assembler {
          *   If instruction has a non-zero number of operands
          */
         auto AddVoid(VM::Instructions::Opcode) -> void;
+
+        template<typename T>
+        auto AddLoadConstant(VM::Instructions::Opcode opcode, uint16_t destination, T&& value) -> void {
+            if (opcode != VM::Instructions::Opcode::ldconst)
+                throw Error::AssemblerError{ "Invalid instruction: expected ldcnst" };
+
+            auto index = _constants.FindOrAdd<T>(VM::Primitives::Value(value));
+            _emitter.Emit(opcode, destination, (uint16_t)index);
+        }
         
     public:
         /**
          * @brief 
          *   Patch the jumps and emit the InstructionBuffer,
          *   ready for interpretation
+         * @param name
+         *   A name for the execution unit
          * @return 
          *   A valid Instructions::Buffer if patching succeeds
          */
-        auto Patch() -> VM::Instructions::Buffer;
+        auto Patch(std::string) -> VM::ExecutionUnit;
     
     private:
         /**
@@ -161,6 +176,11 @@ class Assembler {
          *   Emitter object responsible for producing the Instructions::Buffer
          */
         VM::Emit::Emitter                 _emitter;
+        /**
+         * @brief 
+         *   A container of constants
+         */
+        VM::Containers::ConstantPool      _constants;
         /**
          * @brief 
          *   A map of jumps - where they occur -> where they are branching

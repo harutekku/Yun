@@ -24,6 +24,7 @@
 // My header files
 #include "Instructions.hpp"
 #include "Exceptions.hpp"
+#include "Containers.hpp"
 
 /**
  * @brief 
@@ -52,7 +53,7 @@ class Instruction {
          */
         constexpr Instruction(Instructions::Opcode opcode, uint32_t dest, uint32_t src)
             :_opcode{ opcode }, _dest{ static_cast<int32_t>(dest) }, _src{ static_cast<int32_t>(src) } {
-            if (Instructions::OpcodeArgumentCount(opcode) != 2)
+            if (Instructions::OpcodeCount(opcode) != 2)
                 throw Error::InstructionError{ "Invalid arg count" };
         }
         /**
@@ -67,7 +68,7 @@ class Instruction {
          */
         constexpr Instruction(Instructions::Opcode opcode, int32_t offset)
             :_opcode{ opcode }, _dest{ offset }, _src{ 0 } {
-            if (Instructions::OpcodeArgumentCount(opcode) != 1)
+            if (Instructions::OpcodeCount(opcode) != 1)
                 throw Error::InstructionError{ "Invalid arg count" };
         }
 
@@ -81,7 +82,7 @@ class Instruction {
          */
         constexpr Instruction(Instructions::Opcode opcode)
             :_opcode{ opcode }, _dest{ 0 }, _src{ 0 } {
-            if (Instructions::OpcodeArgumentCount(opcode) != 0)
+            if (Instructions::OpcodeCount(opcode) != 0)
                 throw Error::InstructionError{ "Invalid arg count" };        
         }
 
@@ -225,7 +226,7 @@ class Emitter {
          * @return
          *   A buffer of serialized instructions
          */
-        auto Serialize() -> Instructions::Buffer;
+        auto Serialize() -> Containers::InstructionBuffer;
 
     private:
         /**

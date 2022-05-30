@@ -19,55 +19,60 @@
 // C++ header files
 #include <vector>
 // My header files
+#include "Containers.hpp"
 #include "Value.hpp"
-#include "Instructions.hpp"
 
 namespace Yun::VM {
 
-class RegisterArray {
+class ExecutionUnit {
     public:
-        RegisterArray(size_t size = 1024);
-
+        ExecutionUnit(std::string, Containers::ConstantPool, Containers::InstructionBuffer);
+    
     public:
-        [[nodiscard]] auto At(std::size_t) -> Primitives::Value&;
-        auto AllocateFrame(std::size_t) -> void;
-        auto DeallocateFrame(std::size_t) -> void;
+        [[nodiscard]] auto Name() -> std::string_view;
+        [[nodiscard]] auto StartPC() -> uint8_t*;
+        [[nodiscard]] auto StopPC() -> uint8_t*;
+        [[nodiscard]] auto LookUp(size_t) -> Primitives::Value;
+        
+    public:
+        auto Disassemble() -> void;
 
     private:
-        std::size_t                    _index;
-        std::vector<Primitives::Value> _registers;
-};
+        [[nodiscard]] auto DisassembleInstruction(size_t) -> size_t;
 
-class ConstantPool {
-
+    private:
+        std::string                   _name;
+        Containers::ConstantPool      _constants;
+        Containers::InstructionBuffer _buffer;
+        // Containers::FrameInfo         _frames;
 };
 
 class VM final {
     public:
-        VM(Instructions::Buffer);
+        VM(ExecutionUnit);
     
     public:
         auto Run() -> void;
+        auto PrintRegs() -> void;
+
+    private:
+        [[nodiscard]] auto GetOperands(uint8_t*, int, int) -> std::pair<int32_t, int32_t>;
+
+        [[nodiscard]] auto GetRegisters(uint16_t srcIndex, uint16_t destIndex) -> std::pair<Primitives::Value&, Primitives::Value&>;
         
     private:
-        /**
-         * @brief 
-         *   For now, holds one and only one execution unit
-         * @todo
-         *   Add a possibility to split source code into multiple files
-         */
-        Instructions::Buffer _instructions;
+        ExecutionUnit             _unit;
         /**
          * @brief 
          *   Contains all the allocated registers
          */
-        RegisterArray        _registers;
+        Containers::RegisterArray _registers;
         /**
          * @brief 
          *   For now, holds one and only one constant pool
          *   for the current execution unit
          */
-        ConstantPool         _constantPool;
+        int32_t                   _flags;
 };
 
 

@@ -35,5 +35,12 @@ AssemblerError::AssemblerError(const char* message)
     :std::runtime_error(message) {
 }
 
+AllocationError::AllocationError(const char* message)
+    :std::runtime_error(message) {
+}
+
+VMError::VMError(const char* message)
+    :std::runtime_error(message) {
+}
 
 }

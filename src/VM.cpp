@@ -129,7 +129,7 @@ auto VM::Run() -> void {
     auto pc = _unit.StartPC();
     const auto last = _unit.StopPC();
 
-    _registers.Allocate(4);
+    _registers.Allocate(8);
 
     while (pc < last) {
         if (*pc > static_cast<uint8_t>(Instructions::Opcode::hlt))
@@ -140,6 +140,8 @@ auto VM::Run() -> void {
         auto [count, size] = Instructions::OpcodeCountAndSize(op);
         auto [destIndex, srcIndex] = GetOperands(pc, count, size);
         
+        #pragma region Interpreter
+
         switch (op) {
         case Instructions::Opcode::i32neg: {
             auto destRegister = _registers.At(destIndex);
@@ -601,14 +603,68 @@ auto VM::Run() -> void {
             _flags = destRegister.Compare<float>(srcRegister);
             break;
         }
-        
+        case Instructions::Opcode::jmp: {
+            size = destIndex;
+            break;
+        }
+        case Instructions::Opcode::je: {
+            if (_flags == 0)
+                size = destIndex;
+            break;
+        }
+        case Instructions::Opcode::jne: {
+            if (_flags != 0)
+                size = destIndex;
+            break;
+        }
+        case Instructions::Opcode::jlt: {
+            if (_flags < 0)
+                size = destIndex;
+            break;
+        }
+        case Instructions::Opcode::jle: {
+            if (_flags <= 0)
+                size = destIndex;
+            break;
+        }
+        case Instructions::Opcode::jgt: {
+            if (_flags > 0)
+                size = destIndex;
+            break;
+        }
+        case Instructions::Opcode::jge: {
+            if (_flags >= 0)
+                size = destIndex;
+            break;
+        }
+
+        case Instructions::Opcode::call: {
+
+        }
+        case Instructions::Opcode::ret: {
+
+        }
 
         case Instructions::Opcode::ldconst: {
             auto& destRegister = _registers.At(destIndex);
             destRegister.Assign(_unit.LookUp(srcIndex));
+            break;
+        }
+        
+        case Instructions::Opcode::mov: {
+            auto [destRegister, srcRegister] = GetRegisters(destIndex,srcIndex);
+            destRegister.Assign(srcRegister);
+            break;
         }
 
+        case Instructions::Opcode::nop:
+            break;
+        case Instructions::Opcode::hlt:
+            getchar();
+            break;
         }
+
+        #pragma endregion
 
         pc += size;
 

@@ -44,7 +44,6 @@ class ExecutionUnit {
         std::string                   _name;
         Containers::ConstantPool      _constants;
         Containers::InstructionBuffer _buffer;
-        // Containers::FrameInfo         _frames;
 };
 
 class VM final {

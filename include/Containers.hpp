@@ -1,6 +1,8 @@
 #ifndef CONTAINERS_HPP
 #define CONTAINERS_HPP
 
+#include <map>
+#include <string>
 #include <vector>
 #include <cstddef>
 #include <stack>
@@ -14,7 +16,6 @@ class Assembler;
 }
 
 namespace Yun::VM::Containers {
-
 class RegisterArray {
     public:
         RegisterArray(size_t count = 1024);
@@ -60,19 +61,6 @@ class ConstantPool {
 
 };
 
-struct Frame {
-    size_t PCBegin;
-    size_t RegisterCount;
-    size_t PCEnd;
-};
-
-class FrameInfo {
-    public:
-
-    private:
-        std::stack<Frame, std::vector<Frame>> _frames;
-};
-
 class InstructionBuffer {
     public:
         InstructionBuffer(size_t data);
@@ -90,6 +78,32 @@ class InstructionBuffer {
 
 [[nodiscard]] auto end(InstructionBuffer& buffer) noexcept -> uint8_t*;
 
+
+// TODO: Implement
+class SymbolTable {
+    public:
+        SymbolTable() = default;
+
+    private:
+        std::map<std::string, uint32_t> _symbols;
+};
+
+// TODO: Implement
+class Function {
+    private:
+        uint32_t          _pcEnd;
+        uint32_t          _registerCount;
+        InstructionBuffer _instructions;
+};
+
+// TODO: Implement
+class FunctionPool {
+    public:
+        FunctionPool() = default;
+    
+    private:
+        std::vector<Function> _functions;
+};
 
 }
 

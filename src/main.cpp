@@ -14,12 +14,41 @@ auto main(void) -> int try {
     
     Assembler as{  };
 
-    as.AddLoadConstant(ldconst, 0, 2.0f);
-    as.AddLoadConstant(ldconst, 1, 2.1f);
-    as.AddBinary(fcmp, 0, 1);
+    // oldValue
+    as.AddLoadConstant(ldconst, 0, (uint64_t)0ull);
+
+    // currentValue
+    as.AddLoadConstant(ldconst, 1, (uint64_t)1ull);
+
+    // i
+    as.AddBinary(mov, 2, 1);
+
+    // increment
+    as.AddBinary(mov, 3, 1);
+
+    // range
+    as.AddLoadConstant(ldconst, 4, (uint64_t)20ull);
+
+
+    as.AddLabel("begin");
+    as.AddBinary(cmp, 2, 4);
+    as.AddJump(je, "end");
+
+    // temp
+    as.AddBinary(mov, 5, 1);
+    as.AddBinary(u64add, 1, 0);
+    as.AddBinary(mov, 0, 5);
+
+    as.AddBinary(u64add, 2, 3);
+    as.AddJump(jmp, "begin");
+
+    as.AddLabel("end");
+    as.AddVoid(hlt);
 
     auto res = as.Patch("Test");
-    res.Disassemble();
+
+    VM vm{ std::move(res) };
+    vm.Run();
 
     return 0;
 } catch (std::exception& e) {

@@ -17,6 +17,7 @@
 #define INSTRUCTIONS_HPP
 
 // C header files
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 // C++ header files
@@ -49,7 +50,6 @@ enum class Opcode : uint8_t {
 
     // Logic
     cmp, icmp, fcmp,
-    land, lor, lnot,
 
     // Jumps
     jmp,
@@ -62,6 +62,7 @@ enum class Opcode : uint8_t {
 
     // Constants - for now, only numbers
     ldconst,
+    mov,
 
     // Misc
     nop,
@@ -124,16 +125,14 @@ enum class Opcode : uint8_t {
     case cmp:
     case icmp:
     case fcmp:
-    case land:
-    case lor:
     case ldconst:
+    case mov:
         return 2;
     case bnot:
     case i32neg:
     case i64neg:
     case f32neg:
     case f64neg:
-    case lnot:
     case convi32toi8:
     case convi32toi16:
     case convu32tou8:
@@ -240,16 +239,14 @@ enum class Opcode : uint8_t {
     case cmp:
     case icmp:
     case fcmp:
-    case land:
-    case lor:
     case ldconst:
+    case mov:
         return 5;
     case i32neg:
     case i64neg:
     case f32neg:
     case f64neg:
     case bnot:
-    case lnot:
     case convi32toi8:
     case convi32toi16:
     case convu32tou8:
@@ -301,7 +298,7 @@ enum class Opcode : uint8_t {
     }
 }
 
-[[nodiscard]] constexpr auto OpcodeCountAndSize(Opcode op) -> std::pair<int, int> {
+[[nodiscard]] constexpr auto OpcodeCountAndSize(Opcode op) -> std::pair<int32_t, int32_t> {
     using enum Opcode;
     switch (op) {
     case i32add:
@@ -357,15 +354,13 @@ enum class Opcode : uint8_t {
     case cmp:
     case icmp:
     case fcmp:
-    case land:
-    case lor:
     case ldconst:
+    case mov:
         return { 2, 5 };
     case i32neg:
     case i64neg:
     case f32neg:
     case f64neg:
-    case lnot:
     case bnot:
     case convi32toi8:
     case convi32toi16:
@@ -621,12 +616,6 @@ enum class Opcode : uint8_t {
         return "icmp";
     case fcmp:
         return "fcmp";
-    case land:
-        return "land";
-    case lor:
-        return "lor";
-    case lnot:
-        return "lnot";
     case jmp:
         return "jmp";
     case je:
@@ -647,6 +636,8 @@ enum class Opcode : uint8_t {
         return "ret";
     case ldconst:
         return "ldconst";
+    case mov:
+        return "mov";
     case nop:
         return "nop";
     case hlt:

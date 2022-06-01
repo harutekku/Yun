@@ -14,12 +14,54 @@
  */
 // My header files
 #include "../include/Assembler.hpp"
-#include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <string>
 
 namespace Yun::ASM {
 
-auto Assembler::AddLabel(std::string label) -> void {
+FunctionUnit::FunctionUnit(VM::Containers::Symbol symbol, VM::Emit::Emitter emitter, std::map<uint32_t, std::string> calls)
+    :_symbol{ std::move(symbol) }, _emitter{ std::move(emitter) }, _calls{ std::move(calls) } {
+}
+
+[[nodiscard]] auto FunctionUnit::Size() -> size_t {
+    return _emitter.Size();
+}
+
+[[nodiscard]] auto FunctionUnit::Serialize(uint8_t* buffer) -> size_t {
+    return _emitter.Serialize(buffer);
+}
+
+[[nodiscard]] auto FunctionUnit::Serialize() -> VM::Containers::InstructionBuffer {
+    return _emitter.Serialize();
+}
+
+[[nodiscard]] auto FunctionUnit::At(size_t index) -> VM::Emit::Instruction& {
+    return _emitter.At(index);
+}
+
+[[nodiscard]] auto FunctionUnit::Symbol() -> VM::Containers::Symbol& {
+    return _symbol;
+}
+        
+[[nodiscard]] auto FunctionUnit::CallMap() -> std::map<uint32_t, std::string>& {
+    return _calls;
+}
+
+auto FunctionBuilder::NewFunction(std::string name, uint16_t registerCount, uint16_t argumentCount, bool doesReturn) -> void {
+    if (argumentCount > registerCount || (registerCount == 0 && doesReturn))
+        throw Error::AssemblerError{ "Argument count bigger than register count" };
+    _name = std::move(name);
+    _registerCount = registerCount;
+    _argumentCount = argumentCount;
+    _doesReturn    = doesReturn;
+    _emitter.Clear();
+    _jumps.clear();
+    _calls.clear();
+    _labels.clear();
+}
+
+auto FunctionBuilder::AddLabel(std::string label) -> void {
     // First try adding a label to the map
     auto [it, success] = _labels.try_emplace(label, _emitter.Size());
 
@@ -28,7 +70,7 @@ auto Assembler::AddLabel(std::string label) -> void {
         throw Error::AssemblerError{ "Label redefinition" };
 }
 
-auto Assembler::AddJump(VM::Instructions::Opcode opcode, std::string label) -> void {
+auto FunctionBuilder::AddJump(VM::Instructions::Opcode opcode, std::string label) -> void {
     if (!VM::Instructions::IsJump(opcode))
         throw Error::InstructionError{ "Opcode isn't a jump" };
     
@@ -45,17 +87,27 @@ auto Assembler::AddJump(VM::Instructions::Opcode opcode, std::string label) -> v
     _jumps.try_emplace(offsets, label);
 }
 
-auto Assembler::AddBinary(VM::Instructions::Opcode opcode, uint32_t dest, uint32_t src) -> void {
-    if (opcode == VM::Instructions::Opcode::ldconst && !_constants.Has(src)) 
-        throw Error::AssemblerError{ "Can't add a new `ldconst` with invalid index" };
+auto FunctionBuilder::AddCall(std::string function) -> void {
+    auto offset = _emitter.Count();
+    
+    _emitter.Emit(VM::Instructions::Opcode::call, 0);
+
+    _calls.try_emplace(offset, function);
+}
+
+auto FunctionBuilder::AddBinary(VM::Instructions::Opcode opcode, uint32_t dest, uint32_t src) -> void {
+    if (dest >= _registerCount || (opcode != VM::Instructions::Opcode::ldconst && src >= _registerCount))
+        throw Error::AssemblerError{ "Register index out of range" };
     _emitter.Emit(opcode, dest, src);
 }
 
-auto Assembler::AddVoid(VM::Instructions::Opcode opcode) -> void {
+auto FunctionBuilder::AddVoid(VM::Instructions::Opcode opcode) -> void {
     _emitter.Emit(opcode);
 }
 
-auto Assembler::Patch(std::string name) -> VM::ExecutionUnit try {
+auto FunctionBuilder::Finalize() -> FunctionUnit try {
+    CheckIfReturns();
+
     for (const auto& [jmpOffst, label] : _jumps) {
         auto [jmpRelOffst, jmpAbsOffst] = jmpOffst;
 
@@ -69,13 +121,100 @@ auto Assembler::Patch(std::string name) -> VM::ExecutionUnit try {
         auto trueOffset = labelAbsOffst - jmpAbsOffst;
 
         // Patch jump
-        _emitter.At(jmpRelOffst).PatchJump(trueOffset);
+        _emitter.At(jmpRelOffst).PatchOffset(trueOffset);
     }
 
-    // Get the final instruction buffer
-    return VM::ExecutionUnit{ name, _constants, _emitter.Serialize() };
+    VM::Containers::Symbol s{ std::move(_name), _registerCount, _argumentCount, _doesReturn, 0, static_cast<uint32_t>(_emitter.Size()) };
+
+
+    return { s, _emitter, _calls };
 } catch (std::out_of_range& e) {
     throw Error::AssemblerError{ "No label found" };
+}
+
+auto FunctionBuilder::CheckIfReturns() -> void {
+    auto last = _emitter.Count();
+
+    if (last == 0 || _emitter.At(last - 1).Opcode() != VM::Instructions::Opcode::ret)
+        throw Error::AssemblerError{ "Function must contain `ret` instruction" };
+}
+
+auto Assembler::BeginFunction(std::string name, uint16_t registerCount, uint16_t argumentCount, bool doesReturn) -> void {
+    if (!_isBuildingAFunction) {
+        _builder.NewFunction(name, registerCount, argumentCount, doesReturn);
+        _isBuildingAFunction = true;
+    } else
+        throw Error::AssemblerError{ "Can't build a new function when one is already being built" };
+}
+
+auto Assembler::EndFunction() -> void {
+    if (_isBuildingAFunction) {
+        _functions.emplace_back(_builder.Finalize());
+        _isBuildingAFunction = false;
+    } else
+        throw Error::AssemblerError{ "Can't end a build of a function that doesn't exist" };
+}
+
+auto Assembler::AddLabel(std::string label) -> void {
+    if (!_isBuildingAFunction)
+        throw Error::AssemblerError{ "Can't add an instruction when not in build mode" };
+    _builder.AddLabel(label);
+}
+
+auto Assembler::AddJump(VM::Instructions::Opcode opcode, std::string label) -> void {
+    if (!_isBuildingAFunction)
+        throw Error::AssemblerError{ "Can't add an instruction when not in build mode" };
+    _builder.AddJump(opcode, label);
+}
+
+auto Assembler::AddCall(std::string function) -> void {
+    _builder.AddCall(function);
+}
+
+auto Assembler::AddBinary(VM::Instructions::Opcode opcode, uint32_t dest, uint32_t src) -> void {
+    if (!_isBuildingAFunction)
+        throw Error::AssemblerError{ "Can't add an instruction when not in build mode" };
+    else if (opcode == VM::Instructions::Opcode::ldconst && !_constants.Has(src)) 
+        throw Error::AssemblerError{ "Can't add a new `ldconst` with invalid index" };
+    _builder.AddBinary(opcode, dest, src);
+}
+
+auto Assembler::AddVoid(VM::Instructions::Opcode opcode) -> void {
+    if (!_isBuildingAFunction)
+        throw Error::AssemblerError{ "Can't add an instruction when not in build mode" };
+    _builder.AddVoid(opcode);
+}
+
+[[nodiscard]] auto Assembler::Patch(std::string name) -> VM::ExecutionUnit {
+    size_t codeSegmentSize = 0;
+    
+    // First, calculate the code segment size
+    for (auto& function : _functions) {
+        auto symbol = std::move(function.Symbol());
+
+        // Fill the symbol table with declared functions
+        symbol.Start = codeSegmentSize;
+        symbol.End   = codeSegmentSize + function.Size();
+
+        _symbolTable.Add(symbol);
+
+        codeSegmentSize += function.Size();
+    }
+
+    VM::Containers::InstructionBuffer buffer{ codeSegmentSize };
+
+    size_t index = 0;
+    for (auto& function : _functions) {
+        const auto& callMap = function.CallMap();
+
+        for (const auto& [relOffst, string] : callMap) {
+            const auto& symbol = _symbolTable.FindByName(string);
+
+            function.At(relOffst).PatchOffset(symbol.Start);
+        }
+        index += function.Serialize(buffer.begin() + index);
+    }
+    return { std::move(name), std::move(_symbolTable), std::move(_constants), std::move(buffer) };
 }
 
 }

@@ -21,6 +21,7 @@
 // C++ header files
 #include <string>
 #include <map>
+#include <vector>
 // My header files
 #include "Containers.hpp"
 #include "Exceptions.hpp"
@@ -88,6 +89,61 @@ class JumpOffset {
     return first.AbsoluteOffset < second.AbsoluteOffset;
 }
 
+
+class FunctionUnit {
+    public:
+        FunctionUnit(VM::Containers::Symbol, VM::Emit::Emitter, std::map<uint32_t, std::string> calls);
+    
+    public:
+        [[nodiscard]] auto Size() -> size_t;
+
+        auto Serialize() -> VM::Containers::InstructionBuffer;
+        [[nodiscard]] auto Serialize(uint8_t*) -> size_t;
+
+        [[nodiscard]] auto At(size_t) -> VM::Emit::Instruction&;
+
+        [[nodiscard]] auto Symbol() -> VM::Containers::Symbol&;
+        
+        [[nodiscard]] auto CallMap() -> std::map<uint32_t, std::string>&;
+    
+    private:
+        VM::Containers::Symbol            _symbol;
+        VM::Emit::Emitter                 _emitter;
+        std::map<uint32_t, std::string>   _calls;
+};
+
+class FunctionBuilder {
+    public:
+        FunctionBuilder() = default;
+
+    public:
+        auto NewFunction(std::string, uint16_t, uint16_t, bool) -> void; 
+
+    public:
+        auto AddLabel(std::string) -> void;
+        auto AddJump(VM::Instructions::Opcode, std::string) -> void;
+        auto AddBinary(VM::Instructions::Opcode, uint32_t, uint32_t) -> void;
+        auto AddVoid(VM::Instructions::Opcode) -> void;
+        auto AddCall(std::string) -> void;
+
+    public:
+        [[nodiscard]] auto Finalize() -> FunctionUnit;
+    
+    private:
+        auto CheckIfReturns() -> void;
+
+    private:
+        std::string                       _name;
+        uint16_t                          _registerCount;
+        uint16_t                          _argumentCount;
+        bool                              _doesReturn;
+        VM::Emit::Emitter                 _emitter;
+
+        std::map<JumpOffset, std::string> _jumps;
+        std::map<std::string, int32_t>    _labels;
+        std::map<uint32_t, std::string>   _calls;
+};
+
 /**
  * @brief 
  *   Main assembler class, responsible for code generation
@@ -101,6 +157,10 @@ class Assembler {
          */
         Assembler() = default;
     
+    public:
+        auto BeginFunction(std::string, uint16_t, uint16_t, bool) -> void;
+        auto EndFunction() -> void;
+
     public:
         /**
          * @brief 
@@ -123,6 +183,8 @@ class Assembler {
          *   If the instruction wasn't from jump family
          */
         auto AddJump(VM::Instructions::Opcode, std::string) -> void;
+
+        auto AddCall(std::string) -> void;
 
     public:
         /**
@@ -150,47 +212,29 @@ class Assembler {
         auto AddVoid(VM::Instructions::Opcode) -> void;
 
         template<typename T>
-        auto AddLoadConstant(VM::Instructions::Opcode opcode, uint16_t destination, T&& value) -> void {
-            if (opcode != VM::Instructions::Opcode::ldconst)
-                throw Error::AssemblerError{ "Invalid instruction: expected ldcnst" };
-
-            auto index = _constants.FindOrAdd<T>(VM::Primitives::Value(value));
-            _emitter.Emit(opcode, destination, (uint16_t)index);
+        auto LoadConstant(uint16_t destination, T&& value) -> void {
+            auto index = _constants.FindOrAdd<T>(VM::Primitives::Value(std::forward<T>(value)));
+            _builder.AddBinary(VM::Instructions::Opcode::ldconst, destination, index);
         }
         
     public:
         /**
          * @brief 
-         *   Patch the jumps and emit the InstructionBuffer,
+         *   Patch the calls and symbol table and emit the ExecutionUnit,
          *   ready for interpretation
          * @param name
          *   A name for the execution unit
          * @return 
          *   A valid Instructions::Buffer if patching succeeds
          */
-        auto Patch(std::string) -> VM::ExecutionUnit;
+        [[nodiscard]] auto Patch(std::string) -> VM::ExecutionUnit;
     
     private:
-        /**
-         * @brief 
-         *   Emitter object responsible for producing the Instructions::Buffer
-         */
-        VM::Emit::Emitter                 _emitter;
-        /**
-         * @brief 
-         *   A container of constants
-         */
+        VM::Containers::SymbolTable       _symbolTable;
         VM::Containers::ConstantPool      _constants;
-        /**
-         * @brief 
-         *   A map of jumps - where they occur -> where they are branching
-         */
-        std::map<JumpOffset, std::string> _jumps;
-        /**
-         * @brief 
-         *   A map of labels and their absolute positions
-         */
-        std::map<std::string, int32_t>    _labels;
+        FunctionBuilder                   _builder;
+        std::vector<FunctionUnit>         _functions;
+        bool                              _isBuildingAFunction;
 };
 
 }

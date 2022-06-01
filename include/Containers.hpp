@@ -24,6 +24,8 @@ class RegisterArray {
         [[nodiscard]] auto At(std::size_t) -> Primitives::Value&;
         auto Allocate(std::size_t) -> void;
         auto Deallocate(std::size_t) -> void;
+        auto Copy(std::size_t, std::size_t) -> void;
+        auto SaveReturnValue(std::size_t, std::size_t) -> void;
 
     public:
         auto Print() -> void;
@@ -78,31 +80,75 @@ class InstructionBuffer {
 
 [[nodiscard]] auto end(InstructionBuffer& buffer) noexcept -> uint8_t*;
 
+class Symbol {
+    public:
+        [[nodiscard]] auto ToString() -> std::string;
+        auto PrettyFunctionSignature() const -> std::string;
 
-// TODO: Implement
+    public:
+        std::string Name; 
+        uint16_t    Registers;
+        uint16_t    Arguments;
+        bool        DoesReturn;
+        uint32_t    Start;
+        uint32_t    End;
+};
+
 class SymbolTable {
     public:
         SymbolTable() = default;
 
-    private:
-        std::map<std::string, uint32_t> _symbols;
-};
-
-// TODO: Implement
-class Function {
-    private:
-        uint32_t          _pcEnd;
-        uint32_t          _registerCount;
-        InstructionBuffer _instructions;
-};
-
-// TODO: Implement
-class FunctionPool {
     public:
-        FunctionPool() = default;
+        [[nodiscard]] auto FindByName(const std::string_view) -> const Symbol&;
+        [[nodiscard]] auto FindByLocation(uint32_t) -> const Symbol&;
+        [[nodiscard]] auto At(size_t) -> const Symbol&;
+        [[nodiscard]] auto Count() -> size_t;
+    
+    public:
+        auto Print() -> void;
+
+    private:
+        friend class ASM::Assembler;
+        auto Add(Symbol) -> void;
+
+    private:
+        std::size_t         _size;
+        std::vector<Symbol> _symbols;
+};
+
+class Frame {
+    public:
+        constexpr Frame() noexcept = default;
+        constexpr Frame(uint32_t returnAddress, uint16_t registerCount, bool keepReturnValue, uint32_t end) noexcept
+            :ReturnAddress{ returnAddress }, RegisterCount{ registerCount }, KeepReturnValue{ keepReturnValue }, End{ end } {
+        }
+
+    public:
+        uint32_t ReturnAddress;
+        uint16_t RegisterCount;
+        bool     KeepReturnValue;
+        uint32_t End;
+};
+
+// TODO: Implement
+class CallStack {
+    public:
+        CallStack(size_t count = 1024);
+
+    public:
+        auto Push(Frame) -> void;
+        [[nodiscard]] auto Pop() -> Frame;
+
+    public:
+        [[nodiscard]] auto RelativeOffset() -> size_t;
+
+    public:
+        [[nodiscard]] auto IsEmpty() -> bool;
     
     private:
-        std::vector<Function> _functions;
+        size_t             _count;
+        size_t             _relativeOffset;
+        std::vector<Frame> _frames;
 };
 
 }

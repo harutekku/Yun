@@ -1,6 +1,3 @@
-// C header files
-#include <cstdio>
-#include <iterator>
 // My header files
 #include "../include/VM.hpp"
 #include "../include/Instructions.hpp"
@@ -14,41 +11,36 @@ auto main(void) -> int try {
     
     Assembler as{  };
 
-    // oldValue
-    as.AddLoadConstant(ldconst, 0, (uint64_t)0ull);
+    // test(): Value
+    as.BeginFunction("test", 4, 1, true);
+    {
+        as.LoadConstant(1, 3);      // R1    := $3
+        as.AddBinary(icmp, 0, 1);   // FLAGS := R0 - R1
+        as.AddJump(jge, "end");     // FLAGS >= 1? goto end
 
-    // currentValue
-    as.AddLoadConstant(ldconst, 1, (uint64_t)1ull);
+        as.LoadConstant(2, 1);      // R2     := $1
+        as.AddBinary(i32add, 0, 2); // R0     := R0 + R2
+        as.AddBinary(mov, 3, 0);    // R3     := R0
+        as.AddCall("test");         // test(R3);
+        as.AddLabel("end");
+        as.AddVoid(ret);
+    }
+    as.EndFunction();
 
-    // i
-    as.AddBinary(mov, 2, 1);
+    as.BeginFunction("main", 1, 0, false);
+    {
+        as.LoadConstant(0, 1);
+        as.AddCall("test");
+        as.AddVoid(ret);
+    }
+    as.EndFunction();
 
-    // increment
-    as.AddBinary(mov, 3, 1);
+    auto e = as.Patch("Test");
 
-    // range
-    as.AddLoadConstant(ldconst, 4, (uint64_t)20ull);
+    e.Disassemble();
 
-
-    as.AddLabel("begin");
-    as.AddBinary(cmp, 2, 4);
-    as.AddJump(je, "end");
-
-    // temp
-    as.AddBinary(mov, 5, 1);
-    as.AddBinary(u64add, 1, 0);
-    as.AddBinary(mov, 0, 5);
-
-    as.AddBinary(u64add, 2, 3);
-    as.AddJump(jmp, "begin");
-
-    as.AddLabel("end");
-    as.AddVoid(hlt);
-
-    auto res = as.Patch("Test");
-
-    VM vm{ std::move(res) };
-    vm.Run();
+    VM v{ std::move(e) };
+    v.Run();
 
     return 0;
 } catch (std::exception& e) {

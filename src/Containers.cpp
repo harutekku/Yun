@@ -1,5 +1,8 @@
 #include "../include/Containers.hpp"
 #include <cstdio>
+#include <iterator>
+#include <memory>
+#include <string>
 
 namespace Yun::VM::Containers {
 
@@ -23,6 +26,15 @@ auto RegisterArray::Deallocate(size_t count) -> void {
     if (_index < count)
         throw Error::AllocationError{ "Can't deallocate more than `currentCount` registers" };
     _index -= count;
+}
+
+auto RegisterArray::Copy(std::size_t base, std::size_t count) -> void {
+    for (size_t i = 0; i != count; ++i)
+        _registers.at(_index - base + i) = _registers.at(_index - base - count + i);
+}
+
+auto RegisterArray::SaveReturnValue(std::size_t oldFrameCount, std::size_t currentFrameCount) -> void {
+    _registers.at(_index - oldFrameCount - currentFrameCount) = _registers.at(_index - oldFrameCount);
 }
 
 auto RegisterArray::Print() -> void {
@@ -70,5 +82,86 @@ InstructionBuffer::InstructionBuffer(size_t size) {
     return buffer.end();
 }
 
+[[nodiscard]] auto Symbol::ToString() -> std::string {
+    std::string retVal{ std::string("@0x") + std::to_string(Start) + std::string(" -> ") };
+    retVal.append(Name);
+    retVal.append("\n    Registers: ");
+    retVal.append(std::to_string(Registers));
+    retVal.append("\n    Arguments: ");
+    retVal.append(std::to_string(Arguments));
+    retVal.append("\n    Returns: ");
+    retVal.append(DoesReturn? "Value" : "void");
+    retVal.append("\n    End: ");
+    retVal.append(std::to_string(End) + "\n");
+    return retVal;
+}
+
+auto Symbol::PrettyFunctionSignature() const -> std::string {
+    std::string retVal{ DoesReturn? "Value " : "void " };
+    retVal.append(Name);
+    retVal.append("(");
+    int i = 0;
+    for (; i < Arguments - 1; ++i)
+        retVal.append("Value, ");
+    if (i < Arguments)
+        retVal.append("Value");
+    retVal.append("):");
+    return retVal;
+}
+
+[[nodiscard]] auto SymbolTable::FindByName(const std::string_view name) -> const Symbol& {
+    for (size_t i = 0; i != _symbols.size(); ++i)
+        if (_symbols[i].Name == name)
+            return _symbols[i];
+    throw Error::VMError{ "No such symbol exists in symbol table" };
+}
+
+[[nodiscard]] auto SymbolTable::FindByLocation(uint32_t location) -> const Symbol& {
+    for (size_t i = 0; i != _symbols.size(); ++i)
+        if (_symbols[i].Start == location)
+            return _symbols[i];
+    throw Error::VMError{ "No such symbol exists in symbol table" };
+}
+
+[[nodiscard]] auto SymbolTable::At(size_t index) -> const Symbol& {
+    return _symbols.at(index);
+}
+
+[[nodiscard]] auto SymbolTable::Count() -> size_t {
+    return _symbols.size();
+}
+
+auto SymbolTable::Print() -> void {
+    for (size_t i = 0; i != _symbols.size(); ++i)
+        printf("  %s", _symbols[i].ToString().data());
+}
+    
+auto SymbolTable::Add(Symbol symbol) -> void {
+    _size += symbol.Name.size() + sizeof(symbol.Start) + sizeof(symbol.End) + sizeof(symbol.Registers) + sizeof(symbol.Arguments) + sizeof(symbol.DoesReturn); 
+    _symbols.emplace_back(std::move(symbol));
+}
+
+CallStack::CallStack(size_t count)
+    :_count{ 0 }, _relativeOffset{ 0 }, _frames(count) {
+}
+
+auto CallStack::Push(Frame frame) -> void {
+    _relativeOffset += _count? frame.RegisterCount : 0;
+    _frames[_count++] = frame;
+}
+
+[[nodiscard]] auto CallStack::Pop() -> Frame {
+    auto returnValue = _frames[--_count];
+    _relativeOffset -= _count? _frames[_count].RegisterCount : 0;
+    return returnValue;
+}
+
+[[nodiscard]] auto CallStack::RelativeOffset() -> size_t {
+    return _relativeOffset;
+}
+
+[[nodiscard]] auto CallStack::IsEmpty() -> bool {
+    return _count == 0;
+}
 
 }

@@ -18,11 +18,13 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <exception>
+#include <stdexcept>
 
 namespace Yun::VM {
 
-ExecutionUnit::ExecutionUnit(std::string name, Containers::ConstantPool constants, Containers::InstructionBuffer instructions)
-    :_name{ std::move(name) }, _constants{ std::move(constants) }, _buffer{ std::move(instructions) } {
+ExecutionUnit::ExecutionUnit(std::string name, Containers::SymbolTable symbols, Containers::ConstantPool constants, Containers::InstructionBuffer instructions)
+    :_name{ std::move(name) }, _symbols{ std::move(symbols) }, _constants{ std::move(constants) }, _buffer{ std::move(instructions) } {
 }
     
 [[nodiscard]] auto ExecutionUnit::Name() -> std::string_view {
@@ -37,8 +39,16 @@ ExecutionUnit::ExecutionUnit(std::string name, Containers::ConstantPool constant
     return _buffer.end();
 }
 
-[[nodiscard]] auto ExecutionUnit::LookUp(size_t index) -> Primitives::Value {
+[[nodiscard]] auto ExecutionUnit::ConstantLookup(size_t index) -> Primitives::Value {
     return _constants.Read(index);
+}
+
+[[nodiscard]] auto ExecutionUnit::SymbolLookup(size_t index) -> Containers::Symbol {
+    return _symbols.FindByLocation(index);
+}
+
+[[nodiscard]] auto ExecutionUnit::SymbolLookup(const std::string& string) -> Containers::Symbol {
+    return _symbols.FindByName(string);
 }
 
 [[nodiscard]] auto ExecutionUnit::DisassembleInstruction(size_t offset) -> size_t {
@@ -81,14 +91,23 @@ ExecutionUnit::ExecutionUnit(std::string name, Containers::ConstantPool constant
 auto ExecutionUnit::Disassemble() -> void {
     printf("===== Disassembly of the Execution Unit: %s =====\n\n", _name.data());
 
-    puts("Constant pool:");
+    puts("Symbol table:");
+    _symbols.Print();
+
+    puts("\nConstant pool:");
     _constants.Print();
 
     puts("\nInstructions:");
 
     const size_t range = _buffer.end() - _buffer.begin();
-    for (size_t offset = 0; offset < range;)
+    size_t stIndex = 0;
+    for (size_t offset = 0; offset < range;) {
+        if (stIndex < _symbols.Count() && _symbols.At(stIndex).Start == offset) {
+                puts(_symbols.At(stIndex).PrettyFunctionSignature().c_str());
+                ++stIndex;
+        }
         offset = DisassembleInstruction(offset);
+    }
 }
 
 VM::VM(ExecutionUnit unit)
@@ -102,7 +121,7 @@ VM::VM(ExecutionUnit unit)
         throw Error::VMError{ "Operands outside end PC" };
 
     if (count == 1) {
-        if (Instructions::IsJump(op)) {
+        if (Instructions::IsJump(op) || op == Instructions::Opcode::call) {
             int32_t offset;
             std::memcpy(&offset, pc + 1, sizeof(int32_t));
             return { offset, 0 };
@@ -122,16 +141,28 @@ VM::VM(ExecutionUnit unit)
 }
 
 [[nodiscard]] auto VM::GetRegisters(uint16_t destIndex, uint16_t srcIndex) -> std::pair<Primitives::Value&, Primitives::Value&> {
-    return { _registers.At(destIndex), _registers.At(srcIndex) };
+    return { _registers.At(_callStack.RelativeOffset() + destIndex), _registers.At(_callStack.RelativeOffset() + srcIndex) };
+}
+
+[[nodiscard]] auto VM::GetRegister(uint16_t destIndex) -> Primitives::Value& {
+    return _registers.At(_callStack.RelativeOffset() + destIndex);
 }
 
 auto VM::Run() -> void {
+    const auto& entryPoint = _unit.SymbolLookup("main");
+
     auto pc = _unit.StartPC();
-    const auto last = _unit.StopPC();
 
-    _registers.Allocate(8);
+    if (entryPoint.Start > (_unit.StopPC() - pc))
+       throw Error::VMError{ "Invalid entry point offset" };
+    else
+        pc += entryPoint.Start;
+    
+    Containers::Frame currentFrame{ entryPoint.End - 1, entryPoint.Registers, entryPoint.DoesReturn, entryPoint.End };
+    _callStack.Push(currentFrame);
+    _registers.Allocate(currentFrame.RegisterCount);
 
-    while (pc < last) {
+    do {
         if (*pc > static_cast<uint8_t>(Instructions::Opcode::hlt))
             throw Error::InstructionError{ "Invalid instruction" };
 
@@ -639,20 +670,51 @@ auto VM::Run() -> void {
         }
 
         case Instructions::Opcode::call: {
+            currentFrame.ReturnAddress = pc - _unit.StartPC() + size;
+            _callStack.Push(currentFrame);
 
+            const auto& symbol = _unit.SymbolLookup(destIndex);
+
+            // Allocate new registers
+            _registers.Allocate(symbol.Registers);
+            
+            // Copy last `count` registers to a new frame
+            if (symbol.Arguments != 0)
+                _registers.Copy(symbol.Registers, symbol.Arguments);
+
+            // Stack book keeping
+            // FIXME: Calculate next instruction address
+            currentFrame.End             = symbol.End;
+            currentFrame.RegisterCount   = symbol.Registers;
+            currentFrame.KeepReturnValue = symbol.DoesReturn;
+            
+            size = 0;
+            pc = _unit.StartPC() + destIndex;
+            break;
         }
-        case Instructions::Opcode::ret: {
 
+        case Instructions::Opcode::ret: {
+            auto oldFrame = currentFrame;
+            currentFrame = _callStack.Pop();
+
+            if (oldFrame.KeepReturnValue && oldFrame.RegisterCount != 0)
+                _registers.SaveReturnValue(oldFrame.RegisterCount, currentFrame.RegisterCount);
+
+            _registers.Deallocate(oldFrame.RegisterCount);
+
+            size = 0;
+            pc = _unit.StartPC() + oldFrame.ReturnAddress;
+            break;
         }
 
         case Instructions::Opcode::ldconst: {
-            auto& destRegister = _registers.At(destIndex);
-            destRegister.Assign(_unit.LookUp(srcIndex));
+            auto& destRegister = GetRegister(destIndex);
+            destRegister.Assign(_unit.ConstantLookup(srcIndex));
             break;
         }
         
         case Instructions::Opcode::mov: {
-            auto [destRegister, srcRegister] = GetRegisters(destIndex,srcIndex);
+            auto [destRegister, srcRegister] = GetRegisters(destIndex, srcIndex);
             destRegister.Assign(srcRegister);
             break;
         }
@@ -668,11 +730,13 @@ auto VM::Run() -> void {
 
         pc += size;
 
+        /*
         puts("Registers:");
         _registers.Print();
         printf("Flags: %d\n", _flags);
         putchar('\n');
-    }
+        */
+    } while (!_callStack.IsEmpty());
 }
 
 }

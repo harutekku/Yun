@@ -100,12 +100,12 @@ template<typename T>
 class Value {
     public:  // Special member functions
         constexpr Value()
-            :_type{ Type::Uninit }, _isOperable{ false } {
+            :_type{ Type::Uninit } {
         }
 
         template<typename T>
         constexpr Value(T value)
-            :_type{ TAsEnum<T>() }, _isOperable{ IsIntegral() || IsFloatingPoint() } {
+            :_type{ TAsEnum<T>() } {
             As<T>() = value;
         }
 
@@ -121,7 +121,6 @@ class Value {
         [[nodiscard]] auto As() const noexcept -> const T&;
 
         auto Assign(const Value& value) noexcept -> void {
-            _isOperable = value._isOperable;
             _type = value._type;
             std::memcpy(&uint64, &value.uint64, sizeof(uint64));
         }
@@ -129,35 +128,35 @@ class Value {
     public:  // Arithmetic operations
         template<typename T, typename = typename std::enable_if_t<std::is_signed_v<T> || std::is_floating_point_v<T>, T>>
         constexpr auto Neg() -> void {
-            if (!_isOperable)
-                throw Error::TypeError{ "Inoperable type" };
+            if (_type != TAsEnum<T>())
+                throw Error::TypeError{ "Bad type" };
             As<T>() = -As<T>();
         } 
 
         template<typename T>
         constexpr auto Add(const Value& value) -> void {
-            if (!_isOperable && Is() != value.Is())
+            if (Is() != value.Is() || _type != TAsEnum<T>() )
                 throw Error::TypeError{ "Incompatible types" };
             As<T>() += value.As<T>();
         }
 
         template<typename T>
         constexpr auto Sub(const Value& value) -> void {
-            if (!_isOperable && Is() != value.Is())
+            if (Is() != value.Is() || _type != TAsEnum<T>())
                 throw Error::TypeError{ "Incompatible types" };
             As<T>() -= value.As<T>();
         }
 
         template<typename T>
         constexpr auto Mul(const Value& value) -> void {
-            if (!_isOperable && Is() != value.Is())
+            if (Is() != value.Is() || _type != TAsEnum<T>())
                 throw Error::TypeError{ "Incompatible types" };
             As<T>() *= value.As<T>();
         }
 
         template<typename T>
         constexpr auto Div(const Value& value) -> void {
-            if (!_isOperable && Is() != value.Is())
+            if (Is() != value.Is() || _type != TAsEnum<T>())
                 throw Error::TypeError{ "Incompatible types" };
             if constexpr (std::is_integral_v<T>)
                 if (value.As<T>() == 0)
@@ -167,7 +166,7 @@ class Value {
 
         template<typename T>
         constexpr auto Rem(const Value& value) -> void {
-            if (!_isOperable && Is() != value.Is())
+            if (Is() != value.Is() || _type != TAsEnum<T>())
                 throw Error::TypeError{ "Incompatible types" };
             if constexpr (std::is_integral_v<T>) {
                 if (value.As<T>() == 0)
@@ -180,35 +179,35 @@ class Value {
 
         template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
         constexpr auto And(const Value& value) -> void {
-            if (Is() != value.Is() && !IsIntegral())
+            if (Is() != value.Is() || _type != TAsEnum<T>())
                 throw Error::TypeError{ "Incompatible types" };
             As<T>() &= value.As<T>();
         }
 
         template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
         constexpr auto Or(const Value& value) -> void {
-            if (Is() != value.Is() && !IsIntegral())
+            if (Is() != value.Is() || _type != TAsEnum<T>())
                 throw Error::TypeError{ "Incompatible types" };
             As<T>() |= value.As<T>();
         }
 
         template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
         constexpr auto Xor(const Value& value) -> void {
-            if (Is() != value.Is() && !IsIntegral())
+            if (Is() != value.Is() || _type != TAsEnum<T>())
                 throw Error::TypeError{ "Incompatible types" };
             As<T>() ^= value.As<T>();
         }
 
         template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
         constexpr auto ShiftLeft(const Value& value) -> void {
-            if (value.Is() != Type::Uint32 && !IsIntegral())
+            if (value.Is() != Type::Uint32 || _type != TAsEnum<T>())
                 throw Error::TypeError{ "Incompatible types" };
             As<T>() <<= value.uint32;
         }
 
         template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
         constexpr auto ShiftRight(const Value& value) -> void {
-            if (value.Is() != Type::Uint32 && !IsIntegral())
+            if (value.Is() != Type::Uint32 || _type == TAsEnum<T>())
                 throw Error::TypeError{ "Incompatible types" };
             As<T>() >>= value.uint32;
         }
@@ -221,7 +220,7 @@ class Value {
 
         template<typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>, T>>
         [[nodiscard]] auto Compare(const Value& value) -> int32_t {
-            if (!_isOperable && Is() != value.Is())
+            if (Is() != value.Is() || _type != TAsEnum<T>())
                 throw Error::TypeError{ "Incompatible types" };
 
             if constexpr (std::is_signed_v<T>) {
@@ -277,8 +276,9 @@ class Value {
 
         template<typename From, typename To>
         constexpr auto Convert() -> void {
+            if (_type != TAsEnum<From>())
+                throw Error::TypeError{ "Bad cast" };
             _type       = TAsEnum<To>();
-            _isOperable = IsIntegral() || IsFloatingPoint();
             As<From>()  = (To)As<From>();
         }
 
@@ -315,7 +315,6 @@ class Value {
             double   float64; // These are the defaults
         };
         Type       _type;
-        bool       _isOperable;
 };
 
 }

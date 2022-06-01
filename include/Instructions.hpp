@@ -174,9 +174,11 @@ enum class Opcode : uint8_t {
     case jge:
     case jlt:
     case jle:
+    case call:
         return 1;
     case nop:
     case hlt:
+    case ret:
         return 0;
     default:
         return -1;
@@ -289,9 +291,11 @@ enum class Opcode : uint8_t {
     case jge:
     case jlt:
     case jle:
+    case call:
         return 5;
     case nop:
     case hlt:
+    case ret:
         return 1;
     default:
         return -1;
@@ -404,9 +408,11 @@ enum class Opcode : uint8_t {
     case jge:
     case jlt:
     case jle:
+    case call:
         return { 1, 5 };
     case nop:
     case hlt:
+    case ret:
         return { 0, 1 };
     default:
         return { -1, -1 };

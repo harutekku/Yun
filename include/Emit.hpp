@@ -132,8 +132,8 @@ class Instruction {
          * @param offset
          *   Jump offset
          */
-        constexpr auto PatchJump(int32_t offset) -> void {
-            if (!Instructions::IsJump(_opcode))
+        constexpr auto PatchOffset(int32_t offset) -> void {
+            if (!Instructions::IsJump(_opcode) && _opcode != Instructions::Opcode::call)
                 throw Error::InstructionError{ "Isn't a jump" };
             _dest = offset;
         }
@@ -148,12 +148,12 @@ class Instruction {
          * @brief 
          *   Instruction destination operand
          */
-        int32_t                _dest;
+        int32_t              _dest;
         /**
          * @brief 
          *   Instruction source operand
          */
-        int32_t                _src;
+        int32_t              _src;
 };
 
 /**
@@ -227,6 +227,10 @@ class Emitter {
          *   A buffer of serialized instructions
          */
         auto Serialize() -> Containers::InstructionBuffer;
+
+        [[nodiscard]] auto Serialize(uint8_t*) -> size_t;
+
+        auto Clear() -> void;
 
     private:
         /**

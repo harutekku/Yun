@@ -66,12 +66,24 @@ auto Emitter::Serialize() -> Containers::InstructionBuffer {
     return buffer;
 }
 
+[[nodiscard]] auto Emitter::Serialize(uint8_t* buffer) -> size_t {
+    size_t index = 0;
+    for (auto instruction : _instructions)
+        index += instruction.Serialize(buffer + index);
+    return index;
+}
+
 [[nodiscard]] auto Emitter::At(size_t index) -> Instruction& {
     return _instructions.at(index);
 }
 
 [[nodiscard]] auto Emitter::Count() noexcept -> size_t {
     return _instructions.size();
+}
+
+auto Emitter::Clear() -> void {
+    _instructions.clear();
+    _size = 0;
 }
 
 }

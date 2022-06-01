@@ -87,7 +87,7 @@ namespace Yun::VM::Primitives {
 
     [[nodiscard]] auto Value::ToString() const noexcept -> std::string {
         using enum Type;
-        std::string retVal{ "{ value: " };
+        std::string retVal{ "(" };
 
         switch (_type) {
         case Uninit:
@@ -124,9 +124,9 @@ namespace Yun::VM::Primitives {
             retVal.append(std::to_string(float64));
             break;
         }
-        retVal.append(", type: ");
+        retVal.append(": ");
         retVal.append(TypeToString(_type));
-        retVal.append(" }");
+        retVal.append(")");
         return retVal;
     }
 }

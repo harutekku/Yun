@@ -26,13 +26,15 @@ namespace Yun::VM {
 
 class ExecutionUnit {
     public:
-        ExecutionUnit(std::string, Containers::ConstantPool, Containers::InstructionBuffer);
+        ExecutionUnit(std::string, Containers::SymbolTable, Containers::ConstantPool, Containers::InstructionBuffer);
     
     public:
         [[nodiscard]] auto Name() -> std::string_view;
         [[nodiscard]] auto StartPC() -> uint8_t*;
         [[nodiscard]] auto StopPC() -> uint8_t*;
-        [[nodiscard]] auto LookUp(size_t) -> Primitives::Value;
+        [[nodiscard]] auto ConstantLookup(size_t) -> Primitives::Value;
+        [[nodiscard]] auto SymbolLookup(size_t) -> Containers::Symbol;
+        [[nodiscard]] auto SymbolLookup(const std::string&) -> Containers::Symbol;
         
     public:
         auto Disassemble() -> void;
@@ -42,6 +44,7 @@ class ExecutionUnit {
 
     private:
         std::string                   _name;
+        Containers::SymbolTable       _symbols;
         Containers::ConstantPool      _constants;
         Containers::InstructionBuffer _buffer;
 };
@@ -57,6 +60,7 @@ class VM final {
     private:
         [[nodiscard]] auto GetOperands(uint8_t*, int, int) -> std::pair<int32_t, int32_t>;
 
+        [[nodiscard]] auto GetRegister(uint16_t destIndex) -> Primitives::Value&;
         [[nodiscard]] auto GetRegisters(uint16_t srcIndex, uint16_t destIndex) -> std::pair<Primitives::Value&, Primitives::Value&>;
         
     private:
@@ -66,11 +70,9 @@ class VM final {
          *   Contains all the allocated registers
          */
         Containers::RegisterArray _registers;
-        /**
-         * @brief 
-         *   For now, holds one and only one constant pool
-         *   for the current execution unit
-         */
+        
+        Containers::CallStack     _callStack;
+
         int32_t                   _flags;
 };
 

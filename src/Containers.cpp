@@ -1,5 +1,6 @@
 #include "../include/Containers.hpp"
 #include <cstdio>
+#include <exception>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -11,10 +12,9 @@ RegisterArray::RegisterArray(size_t count)
 }
 
 [[nodiscard]] auto RegisterArray::At(size_t index) -> Primitives::Value& {
-    // FIXME: Do we need a check here?
     if (_index < index)
         throw std::out_of_range{ "Register index out of range" };
-    return _registers.at(index);
+    return _registers[index];
 }
 
 auto RegisterArray::Allocate(size_t count) -> void {
@@ -63,23 +63,23 @@ auto ConstantPool::Print() -> void {
 }
 
 InstructionBuffer::InstructionBuffer(size_t size) {
-    _data  = std::make_unique<uint8_t[]>(size);
+    _data = std::make_unique<uint32_t[]>(size);
     _last = &_data[size];
 }
 
-[[nodiscard]] auto InstructionBuffer::begin() noexcept -> uint8_t* {
+[[nodiscard]] auto InstructionBuffer::begin() noexcept -> uint32_t* {
     return &_data[0];    
 }
 
-[[nodiscard]] auto InstructionBuffer::end() noexcept -> uint8_t* {
+[[nodiscard]] auto InstructionBuffer::end() noexcept -> uint32_t* {
     return _last;
 }
 
-[[nodiscard]] auto begin(InstructionBuffer& buffer) noexcept -> uint8_t* {
+[[nodiscard]] auto begin(InstructionBuffer& buffer) noexcept -> uint32_t* {
     return buffer.begin();
 }
 
-[[nodiscard]] auto end(InstructionBuffer& buffer) noexcept -> uint8_t* {
+[[nodiscard]] auto end(InstructionBuffer& buffer) noexcept -> uint32_t* {
     return buffer.end();
 }
 

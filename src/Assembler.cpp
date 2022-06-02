@@ -25,10 +25,10 @@ FunctionUnit::FunctionUnit(VM::Containers::Symbol symbol, VM::Emit::Emitter emit
 }
 
 [[nodiscard]] auto FunctionUnit::Size() -> size_t {
-    return _emitter.Size();
+    return _emitter.Count() * 4;
 }
 
-[[nodiscard]] auto FunctionUnit::Serialize(uint8_t* buffer) -> size_t {
+[[nodiscard]] auto FunctionUnit::Serialize(uint32_t* buffer) -> size_t {
     return _emitter.Serialize(buffer);
 }
 
@@ -51,7 +51,7 @@ FunctionUnit::FunctionUnit(VM::Containers::Symbol symbol, VM::Emit::Emitter emit
 auto FunctionBuilder::NewFunction(std::string name, uint16_t registerCount, uint16_t argumentCount, bool doesReturn) -> void {
     if (argumentCount > registerCount || (registerCount == 0 && doesReturn))
         throw Error::AssemblerError{ "Argument count bigger than register count" };
-    _name = std::move(name);
+    _name          = std::move(name);
     _registerCount = registerCount;
     _argumentCount = argumentCount;
     _doesReturn    = doesReturn;
@@ -63,7 +63,7 @@ auto FunctionBuilder::NewFunction(std::string name, uint16_t registerCount, uint
 
 auto FunctionBuilder::AddLabel(std::string label) -> void {
     // First try adding a label to the map
-    auto [it, success] = _labels.try_emplace(label, _emitter.Size());
+    auto [it, success] = _labels.try_emplace(label, _emitter.Count() * 4);
 
     // If failed, report a redefinition error
     if (!success)
@@ -77,7 +77,7 @@ auto FunctionBuilder::AddJump(VM::Instructions::Opcode opcode, std::string label
     // Before emitting a new instruction, 
     // get the current relative and absolute offset
     // of the first instruction in the buffer
-    JumpOffset offsets{ static_cast<int32_t>(_emitter.Count()), static_cast<int32_t>(_emitter.Size()) };
+    JumpOffset offsets{ static_cast<int32_t>(_emitter.Count()), static_cast<int32_t>(_emitter.Count() * 4) };
 
     // Will patch this later
     _emitter.Emit(opcode, 0);
@@ -124,7 +124,7 @@ auto FunctionBuilder::Finalize() -> FunctionUnit try {
         _emitter.At(jmpRelOffst).PatchOffset(trueOffset);
     }
 
-    VM::Containers::Symbol s{ std::move(_name), _registerCount, _argumentCount, _doesReturn, 0, static_cast<uint32_t>(_emitter.Size()) };
+    VM::Containers::Symbol s{ std::move(_name), _registerCount, _argumentCount, 0, static_cast<uint32_t>(_emitter.Count() * 4), _doesReturn };
 
 
     return { s, _emitter, _calls };

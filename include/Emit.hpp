@@ -95,7 +95,7 @@ class Instruction {
          * @return
          *   Number of bytes written
          */
-        [[nodiscard]] auto Serialize(uint8_t*) -> size_t;
+        auto Serialize(uint32_t*) -> void;
 
         /**
          * @brief 
@@ -203,17 +203,6 @@ class Emitter {
 
         /**
          * @brief 
-         *   Get the absolute size (in bytes) of the buffer
-         * @return
-         *   Buffer absolute size, i.e. how much space
-         *   would the serialized instructions actually take
-         */
-        [[nodiscard]] constexpr auto Size() noexcept -> size_t {
-            return _size;
-        }
-        
-        /**
-         * @brief 
          *   Get the relative size (in units) of the buffer
          * @return
          *   The number of elements inside the buffer
@@ -228,7 +217,7 @@ class Emitter {
          */
         auto Serialize() -> Containers::InstructionBuffer;
 
-        [[nodiscard]] auto Serialize(uint8_t*) -> size_t;
+        [[nodiscard]] auto Serialize(uint32_t*) -> size_t;
 
         auto Clear() -> void;
 

@@ -31,11 +31,11 @@ ExecutionUnit::ExecutionUnit(std::string name, Containers::SymbolTable symbols, 
     return _name;
 }
 
-[[nodiscard]] auto ExecutionUnit::StartPC() -> uint8_t* {
+[[nodiscard]] auto ExecutionUnit::StartPC() -> uint32_t* {
     return _buffer.begin();
 }
 
-[[nodiscard]] auto ExecutionUnit::StopPC() -> uint8_t* {
+[[nodiscard]] auto ExecutionUnit::StopPC() -> uint32_t* {
     return _buffer.end();
 }
 
@@ -43,11 +43,11 @@ ExecutionUnit::ExecutionUnit(std::string name, Containers::SymbolTable symbols, 
     return _constants.Read(index);
 }
 
-[[nodiscard]] auto ExecutionUnit::SymbolLookup(size_t index) -> Containers::Symbol {
+[[nodiscard]] auto ExecutionUnit::SymbolLookup(size_t index) -> const Containers::Symbol& {
     return _symbols.FindByLocation(index);
 }
 
-[[nodiscard]] auto ExecutionUnit::SymbolLookup(const std::string& string) -> Containers::Symbol {
+[[nodiscard]] auto ExecutionUnit::SymbolLookup(const std::string& string) -> const Containers::Symbol& {
     return _symbols.FindByName(string);
 }
 
@@ -114,32 +114,6 @@ VM::VM(ExecutionUnit unit)
     :_unit{ std::move(unit) }, _registers{  }, _flags{ 0 } {
 }
 
-[[nodiscard]] auto VM::GetOperands(uint8_t* pc, int count, int size) -> std::pair<int32_t, int32_t> {
-    auto op = static_cast<Instructions::Opcode>(*pc);
-    
-    if (pc + size > _unit.StopPC())
-        throw Error::VMError{ "Operands outside end PC" };
-
-    if (count == 1) {
-        if (Instructions::IsJump(op) || op == Instructions::Opcode::call) {
-            int32_t offset;
-            std::memcpy(&offset, pc + 1, sizeof(int32_t));
-            return { offset, 0 };
-        } else {
-            uint16_t dest;
-            std::memcpy(&dest, pc + 1, sizeof(int16_t));
-            return { dest, 0 };
-        }
-    } else if (count == 2) {
-        uint16_t dest;
-        uint16_t src;
-        std::memcpy(&dest, pc + 1, sizeof(dest));
-        std::memcpy(&src, pc + 3, sizeof(src));
-        return { dest, src };
-    } else
-        return {  };
-}
-
 [[nodiscard]] auto VM::GetRegisters(uint16_t destIndex, uint16_t srcIndex) -> std::pair<Primitives::Value&, Primitives::Value&> {
     return { _registers.At(_callStack.RelativeOffset() + destIndex), _registers.At(_callStack.RelativeOffset() + srcIndex) };
 }
@@ -149,9 +123,9 @@ VM::VM(ExecutionUnit unit)
 }
 
 auto VM::Run() -> void {
-    const auto& entryPoint = _unit.SymbolLookup("main");
-
     auto pc = _unit.StartPC();
+
+    const auto& entryPoint = _unit.SymbolLookup("main");
 
     if (entryPoint.Start > (_unit.StopPC() - pc))
        throw Error::VMError{ "Invalid entry point offset" };
@@ -162,15 +136,36 @@ auto VM::Run() -> void {
     _callStack.Push(currentFrame);
     _registers.Allocate(currentFrame.RegisterCount);
 
+    int32_t destIndex;
+    int32_t srcIndex;
+    int32_t size;
+
+    uint8_t              rawOp;
+    Instructions::Opcode op;
+
     do {
-        if (*pc > static_cast<uint8_t>(Instructions::Opcode::hlt))
+        rawOp = (*pc & 0xFF000000) >> 24;
+        if (rawOp > static_cast<uint8_t>(Instructions::Opcode::hlt))
             throw Error::InstructionError{ "Invalid instruction" };
 
-        auto op = static_cast<Instructions::Opcode>(*pc);
+        op = static_cast<Instructions::Opcode>(rawOp);
 
-        auto [count, size] = Instructions::OpcodeCountAndSize(op);
-        auto [destIndex, srcIndex] = GetOperands(pc, count, size);
-        
+        if (auto res = Instructions::OpcodeCount(op); res == 1) {
+            if (Instructions::IsJump(op) || op == Instructions::Opcode::call)
+                destIndex = *pc & 0x00FFFFFF;
+            else
+                destIndex = (*pc & 0x00FFF000) >> 12;
+            srcIndex  = 0;
+        } else if (res == 2) {
+            destIndex = (*pc & 0x00FFF000) >> 12;
+            srcIndex  = *pc & 0x00000FFF;
+        } else {
+            destIndex = 0;
+            srcIndex  = 0;
+        }
+
+        size = 4;
+
         #pragma region Interpreter
 
         switch (op) {

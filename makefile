@@ -5,7 +5,7 @@ export LD        := g++
 
 # Flags
 #-----------------------------------------------------------
-export CXXFLAGS  := -c -g -O3 -std=c++20 -Wall -Wextra -Wpedantic
+export CXXFLAGS  := -c -O3 -std=c++20 -Wall -Wextra -Wpedantic
 export LDFLAGS   := -o
 CPPFLAGS         := -I include
 DEPFLAGS          = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.temp.d

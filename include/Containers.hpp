@@ -68,17 +68,17 @@ class InstructionBuffer {
         InstructionBuffer(size_t data);
 
     public:
-        [[nodiscard]] auto begin() noexcept -> uint8_t*;
-        [[nodiscard]] auto end() noexcept -> uint8_t*;
+        [[nodiscard]] auto begin() noexcept -> uint32_t*;
+        [[nodiscard]] auto end() noexcept -> uint32_t*;
     
     private:
-        std::unique_ptr<std::uint8_t[]> _data;
-        std::uint8_t*                   _last;
+        std::unique_ptr<std::uint32_t[]> _data;
+        std::uint32_t*                   _last;
 };
 
-[[nodiscard]] auto begin(InstructionBuffer& buffer) noexcept -> uint8_t*;
+[[nodiscard]] auto begin(InstructionBuffer& buffer) noexcept -> uint32_t*;
 
-[[nodiscard]] auto end(InstructionBuffer& buffer) noexcept -> uint8_t*;
+[[nodiscard]] auto end(InstructionBuffer& buffer) noexcept -> uint32_t*;
 
 class Symbol {
     public:
@@ -89,9 +89,9 @@ class Symbol {
         std::string Name; 
         uint16_t    Registers;
         uint16_t    Arguments;
-        bool        DoesReturn;
         uint32_t    Start;
         uint32_t    End;
+        bool        DoesReturn;
 };
 
 class SymbolTable {
@@ -130,7 +130,6 @@ class Frame {
         uint32_t End;
 };
 
-// TODO: Implement
 class CallStack {
     public:
         CallStack(size_t count = 1024);

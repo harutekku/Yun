@@ -20,40 +20,28 @@
 
 namespace Yun::VM::Emit {
 
-auto Instruction::Serialize(uint8_t* buffer) -> size_t {
-    size_t offset    = 0;
+auto Instruction::Serialize(uint32_t* buffer) -> void {
+    uint32_t instruction = 0;;
 
-    buffer[offset++] = static_cast<uint8_t>(_opcode);
+    instruction |= static_cast<uint8_t>(_opcode) << 24;
+
     
     // Switch on the number of operands
     // and copy the data into the buffer
     // in a safe way.
-    switch (Instructions::OpcodeCount(_opcode)) {
-    case 1:
-        std::memcpy(&buffer[offset], &_dest, sizeof(_dest));
-        return offset + sizeof(_dest);
-    case 2: {
-        int16_t dest = _dest;
-        int16_t src  = _src;
-
-        std::memcpy(&buffer[offset], &dest, sizeof(dest));
-        offset += sizeof(dest);
-
-        std::memcpy(&buffer[offset], &src, sizeof(src));
-        offset += sizeof(src);
-
-        return offset;
+    if (Instructions::OpcodeCount(_opcode) == 1)
+        instruction |= _dest & 0xFFFFFF;
+    else {
+        instruction |= (_dest & 0xFFF) << 12;
+        instruction |= (_src & 0xFFF);
     }
-    default:
-        return offset;
-    }
+    *buffer = instruction;
 }
 
 auto Emitter::Emit(Instruction instruction) -> void {
     _instructions.push_back(instruction);
 
-    // Add the current instruction size to the total absolute size
-    _size += Instructions::OpcodeSize(instruction.Opcode());
+    _size += 4;
 }
 
 auto Emitter::Serialize() -> Containers::InstructionBuffer {
@@ -61,15 +49,19 @@ auto Emitter::Serialize() -> Containers::InstructionBuffer {
     Containers::InstructionBuffer buffer{ _size };
 
     size_t index = 0;
-    for (auto instruction : _instructions)
-        index += instruction.Serialize(buffer.begin() + index);
+    for (auto instruction : _instructions) {
+        instruction.Serialize(buffer.begin() + index);
+        index += 4;
+    }
     return buffer;
 }
 
-[[nodiscard]] auto Emitter::Serialize(uint8_t* buffer) -> size_t {
+[[nodiscard]] auto Emitter::Serialize(uint32_t* buffer) -> size_t {
     size_t index = 0;
-    for (auto instruction : _instructions)
-        index += instruction.Serialize(buffer + index);
+    for (auto instruction : _instructions) {
+        instruction.Serialize(buffer + index);
+        index += 4;
+    }
     return index;
 }
 

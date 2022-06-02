@@ -30,11 +30,11 @@ class ExecutionUnit {
     
     public:
         [[nodiscard]] auto Name() -> std::string_view;
-        [[nodiscard]] auto StartPC() -> uint8_t*;
-        [[nodiscard]] auto StopPC() -> uint8_t*;
+        [[nodiscard]] auto StartPC() -> uint32_t*;
+        [[nodiscard]] auto StopPC() -> uint32_t*;
         [[nodiscard]] auto ConstantLookup(size_t) -> Primitives::Value;
-        [[nodiscard]] auto SymbolLookup(size_t) -> Containers::Symbol;
-        [[nodiscard]] auto SymbolLookup(const std::string&) -> Containers::Symbol;
+        [[nodiscard]] auto SymbolLookup(size_t) -> const Containers::Symbol&;
+        [[nodiscard]] auto SymbolLookup(const std::string&) -> const Containers::Symbol&;
         
     public:
         auto Disassemble() -> void;
@@ -58,10 +58,9 @@ class VM final {
         auto PrintRegs() -> void;
 
     private:
-        [[nodiscard]] auto GetOperands(uint8_t*, int, int) -> std::pair<int32_t, int32_t>;
+        [[nodiscard]] inline auto GetRegister(uint16_t destIndex) -> Primitives::Value&;
 
-        [[nodiscard]] auto GetRegister(uint16_t destIndex) -> Primitives::Value&;
-        [[nodiscard]] auto GetRegisters(uint16_t srcIndex, uint16_t destIndex) -> std::pair<Primitives::Value&, Primitives::Value&>;
+        [[nodiscard]] inline auto GetRegisters(uint16_t srcIndex, uint16_t destIndex) -> std::pair<Primitives::Value&, Primitives::Value&>;
         
     private:
         ExecutionUnit             _unit;

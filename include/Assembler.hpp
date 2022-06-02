@@ -45,6 +45,8 @@ namespace Yun::ASM {
  *   about offsets of the `j*` instructions relative to
  *   the beginning of some array of some Ts and their
  *   absolute position in bytes
+ * @todo
+ *   TODO: Maybe not needed at all
  */
 class JumpOffset {
     public:
@@ -98,7 +100,7 @@ class FunctionUnit {
         [[nodiscard]] auto Size() -> size_t;
 
         auto Serialize() -> VM::Containers::InstructionBuffer;
-        [[nodiscard]] auto Serialize(uint8_t*) -> size_t;
+        [[nodiscard]] auto Serialize(uint32_t*) -> size_t;
 
         [[nodiscard]] auto At(size_t) -> VM::Emit::Instruction&;
 

@@ -220,7 +220,7 @@ class Value {
 
         template<typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>, T>>
         [[nodiscard]] auto Compare(const Value& value) -> int32_t {
-            if (Is() != value.Is() || _type != TAsEnum<T>())
+            if (Is() != value.Is())
                 throw Error::TypeError{ "Incompatible types" };
 
             if constexpr (std::is_signed_v<T>) {
@@ -231,14 +231,15 @@ class Value {
                         return 1;
                     else
                         return 0;
-                } else {
+                } else if (_type == Type::Int64) {
                     if (int64 < value.int64)
                         return -1;
                     else if (int64 > value.int64)
                         return 1;
                     else
                         return 0;
-                }
+                } else
+                    throw Error::TypeError{ "Invalid signed type" };
             } else if constexpr (std::is_unsigned_v<T>) {
                 if (_type == Type::Uint32) {
                     if (uint32 < value.uint32)
@@ -247,15 +248,16 @@ class Value {
                         return 1;
                     else
                         return 0;
-                } else {
+                } else if (_type == Type::Uint64) {
                     if (uint64 < value.uint64)
                         return -1;
                     else if (uint64 > value.uint64)
                         return 1;
                     else
                         return 0;
-                }
-            } else {
+                } else
+                    throw Error::TypeError{ "Invalid unsigned type" };
+            } else if constexpr (std::is_floating_point_v<T>) {
                 if (_type == Type::Float32) {
                     if (float32 < value.float32)
                         return -1;

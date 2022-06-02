@@ -11,33 +11,46 @@ auto main(void) -> int try {
     
     Assembler as{  };
 
-    // test(): Value
-    as.BeginFunction("test", 4, 1, true);
+    // Fibonacci(): Value
+    as.BeginFunction("fib", 4, 1, true);
     {
-        as.LoadConstant(1, 3);      // R1    := $3
-        as.AddBinary(icmp, 0, 1);   // FLAGS := R0 - R1
-        as.AddJump(jge, "end");     // FLAGS >= 1? goto end
+        as.LoadConstant(1, 1ul);
+        as.AddBinary(cmp, 0, 1);
+        as.AddJump(jgt, "end");
 
-        as.LoadConstant(2, 1);      // R2     := $1
-        as.AddBinary(i32add, 0, 2); // R0     := R0 + R2
-        as.AddBinary(mov, 3, 0);    // R3     := R0
-        as.AddCall("test");         // test(R3);
+        as.AddVoid(ret);
+
         as.AddLabel("end");
+
+        as.AddBinary(mov, 3, 0);
+        as.AddBinary(u64sub, 3, 1);
+        
+        as.AddCall("fib");
+
+        as.AddBinary(mov, 2, 3);
+
+        as.LoadConstant(1, 2ul);
+        as.AddBinary(mov, 3, 0);
+        as.AddBinary(u64sub, 3, 1);
+        as.AddCall("fib");
+
+        as.AddBinary(u64add, 2, 3);
+
+        as.AddBinary(mov, 0, 2);
+
         as.AddVoid(ret);
     }
     as.EndFunction();
 
     as.BeginFunction("main", 1, 0, false);
     {
-        as.LoadConstant(0, 1);
-        as.AddCall("test");
+        as.LoadConstant(0, 20ul);
+        as.AddCall("fib");
         as.AddVoid(ret);
     }
     as.EndFunction();
 
     auto e = as.Patch("Test");
-
-    e.Disassemble();
 
     VM v{ std::move(e) };
     v.Run();

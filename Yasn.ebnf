@@ -1,0 +1,77 @@
+file                = { declaration }
+                    ;
+
+declaration         = function
+                    ;
+
+function            = functionDeclaration instructionBlock
+                    ;
+
+functionDeclaration = attributes 'function' ID '()' 
+                    ;
+    
+instructionBlock    = '{' '\n' { line } retLine '}'
+                    ;
+
+(*****************************************************************************)
+line                = instruction [ operand [ ',' operand ] ] '\n'
+                    ;
+
+retLine             = 'ret' '\n'
+                    ;
+
+(*****************************************************************************)
+attributes          = '[' attribute '=' value { ',' attribute '=' value } ']' '\n'
+                    ;
+
+attribute           = 'registers'
+                    | 'returns'
+                    | 'parameters'
+                    ;
+
+value               = intValue
+                    | boolValue
+                    ;
+
+(*****************************************************************************)
+intValue            = nonzeroDigit { digit }
+                    ;
+
+boolValue           = 'true'
+                    | 'false'
+                    ;
+
+nonzeroDigit        = '1' | '2' | '3' | '4' | '5' 
+                    | '6' | '7' | '8' | '9' ;
+digit               = nonzeroDigit
+                    | '0'
+                    ;
+
+string              = 'a-zA-Z' { 'a-zA-Z' }
+                    ;
+
+(*****************************************************************************)
+operand             = register
+                    | intermediate
+                    | labelName
+                    | functionCall
+                    ;
+
+register            = 'R' intValue
+                    ;
+
+intermediate        = '$' intValue
+                    ;
+
+labelName           = '@' string
+                    ;
+
+functionCall        = string
+                    ;
+
+
+(*****************************************************************************)
+instruction         = (*TODO: Copy*)
+                    ;
+
+                

@@ -11,6 +11,7 @@ RegisterArray::RegisterArray(size_t count)
 }
 
 [[nodiscard]] auto RegisterArray::At(size_t index) -> Primitives::Value& {
+    // FIXME: Do we need a check here?
     if (_index < index)
         throw std::out_of_range{ "Register index out of range" };
     return _registers.at(index);
@@ -33,8 +34,8 @@ auto RegisterArray::Copy(std::size_t base, std::size_t count) -> void {
         _registers.at(_index - base + i) = _registers.at(_index - base - count + i);
 }
 
-auto RegisterArray::SaveReturnValue(std::size_t oldFrameCount, std::size_t currentFrameCount) -> void {
-    _registers.at(_index - oldFrameCount - currentFrameCount) = _registers.at(_index - oldFrameCount);
+auto RegisterArray::SaveReturnValue(std::size_t currentFrameCount) -> void {
+    _registers.at(_index - currentFrameCount - 1) = _registers.at(_index - currentFrameCount);
 }
 
 auto RegisterArray::Print() -> void {

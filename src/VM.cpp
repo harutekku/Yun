@@ -175,7 +175,7 @@ auto VM::Run() -> void {
 
         switch (op) {
         case Instructions::Opcode::i32neg: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Neg<int32_t>();
             break;
         }
@@ -230,7 +230,7 @@ auto VM::Run() -> void {
             break;
         }
         case Instructions::Opcode::i64neg: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Neg<int64_t>();
             break;
         }
@@ -385,7 +385,7 @@ auto VM::Run() -> void {
             break;
         }
         case Instructions::Opcode::f32neg: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Neg<float>();
             break;
         }
@@ -415,7 +415,7 @@ auto VM::Run() -> void {
             break;
         }
         case Instructions::Opcode::f64neg: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Neg<double>();
             break;
         }
@@ -445,177 +445,177 @@ auto VM::Run() -> void {
             break;
         }
         case Instructions::Opcode::bnot: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Not();
             break;
         }
         case Instructions::Opcode::convi32toi8: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int32_t, int8_t>();
             break;
         }
         case Instructions::Opcode::convi32toi16: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int32_t, int16_t>();
             break;
         }
         case Instructions::Opcode::convu32tou8: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint32_t, uint8_t>();
             break;
         }
         case Instructions::Opcode::convu32tou16: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint32_t, uint16_t>();
             break;
         }
         case Instructions::Opcode::convi32toi64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int32_t, int64_t>();
             break;
         }
         case Instructions::Opcode::convi32tou64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int32_t, uint64_t>();
             break;
         }
         case Instructions::Opcode::convi32tou32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int32_t, uint32_t>();
             break;
         }
         case Instructions::Opcode::convi32tof32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int32_t, float>();
             break;
         }
         case Instructions::Opcode::convi32tof64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int32_t, double>();
             break;
         }
         case Instructions::Opcode::convi64toi32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int64_t, int32_t>();
             break;
         }
         case Instructions::Opcode::convi64tou32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int64_t, uint32_t>();
             break;
         }
         case Instructions::Opcode::convi64tou64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int64_t, uint64_t>();
             break;
         }
         case Instructions::Opcode::convi64tof32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int64_t, float>();
             break;
         }
         case Instructions::Opcode::convi64tof64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<int64_t, double>();
             break;
         }
         case Instructions::Opcode::convu32toi64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint32_t, int64_t>();
             break;
         }
         case Instructions::Opcode::convu32tou64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint32_t, uint64_t>();
             break;
         }
         case Instructions::Opcode::convu32toi32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint32_t, int32_t>();
             break;
         }
         case Instructions::Opcode::convu32tof32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint32_t, float>();
             break;
         }
         case Instructions::Opcode::convu32tof64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint32_t, double>();
             break;
         }
         case Instructions::Opcode::convu64toi64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint64_t, int64_t>();
             break;
         }
         case Instructions::Opcode::convu64tou32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint64_t, uint32_t>();
             break;
         }
         case Instructions::Opcode::convu64toi32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint64_t, int32_t>();
             break;
         }
         case Instructions::Opcode::convu64tof32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint64_t, float>();
             break;
         }
         case Instructions::Opcode::convu64tof64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<uint64_t, double>();
             break;
         }
         case Instructions::Opcode::convf32toi32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<float, int32_t>();
             break;
         }
         case Instructions::Opcode::convf32toi64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<float, int64_t>();
             break;
         }
         case Instructions::Opcode::convf32tou32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<float, uint32_t>();
             break;
         }
         case Instructions::Opcode::convf32tof64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<float, double>();
             break;
         }
         case Instructions::Opcode::convf32tou64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<float, uint64_t>();
             break;
         }
         case Instructions::Opcode::convf64toi32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<double, int32_t>();
             break;
         }
         case Instructions::Opcode::convf64toi64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<double, int64_t>();
             break;
         }
         case Instructions::Opcode::convf64tou32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<double, uint32_t>();
             break;
         }
         case Instructions::Opcode::convf64tou64: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<double, uint64_t>();
             break;
         }
         case Instructions::Opcode::convf64tof32: {
-            auto destRegister = _registers.At(destIndex);
+            auto destRegister = GetRegister(destIndex);
             destRegister.Convert<double, float>();
             break;
         }
@@ -682,8 +682,7 @@ auto VM::Run() -> void {
             if (symbol.Arguments != 0)
                 _registers.Copy(symbol.Registers, symbol.Arguments);
 
-            // Stack book keeping
-            // FIXME: Calculate next instruction address
+            currentFrame.ReturnAddress   = 0;
             currentFrame.End             = symbol.End;
             currentFrame.RegisterCount   = symbol.Registers;
             currentFrame.KeepReturnValue = symbol.DoesReturn;
@@ -698,12 +697,12 @@ auto VM::Run() -> void {
             currentFrame = _callStack.Pop();
 
             if (oldFrame.KeepReturnValue && oldFrame.RegisterCount != 0)
-                _registers.SaveReturnValue(oldFrame.RegisterCount, currentFrame.RegisterCount);
+                _registers.SaveReturnValue(oldFrame.RegisterCount);
 
             _registers.Deallocate(oldFrame.RegisterCount);
 
             size = 0;
-            pc = _unit.StartPC() + oldFrame.ReturnAddress;
+            pc = _unit.StartPC() + currentFrame.ReturnAddress;
             break;
         }
 

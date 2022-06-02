@@ -25,7 +25,7 @@ class RegisterArray {
         auto Allocate(std::size_t) -> void;
         auto Deallocate(std::size_t) -> void;
         auto Copy(std::size_t, std::size_t) -> void;
-        auto SaveReturnValue(std::size_t, std::size_t) -> void;
+        auto SaveReturnValue(std::size_t) -> void;
 
     public:
         auto Print() -> void;

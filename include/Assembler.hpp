@@ -36,62 +36,6 @@
  */
 namespace Yun::ASM {
 
-/**
- * @brief 
- *   Stores information about relative and absolute
- *   jump offsets
- * @note 
- *   JumpOffset allows us to store together information
- *   about offsets of the `j*` instructions relative to
- *   the beginning of some array of some Ts and their
- *   absolute position in bytes
- * @todo
- *   TODO: Maybe not needed at all
- */
-class JumpOffset {
-    public:
-        /**
-         * @brief 
-         *   Construct a new jump offset
-         * @param rel 
-         *   Represents relative offset, in units
-         * @param abs
-         *   Represents absolute offset, in bytes
-         */
-        constexpr JumpOffset(int32_t rel, int32_t abs)
-            :RelativeOffset{ rel }, AbsoluteOffset{ abs } {
-        }
-
-    public:
-        /**
-         * @brief 
-         *   Relative offset of the jump
-         */
-        int32_t RelativeOffset;
-        /**
-         * @brief 
-         *   Absolute offset of the jump
-         */
-        int32_t AbsoluteOffset;
-};
-
-/**
- * @brief 
- *   Allow for "less-than" ordering of `JumpOffset` 
- * @param first 
- *   Left-hand value to compare
- * @param second 
- *   Right-hand value to compare
- * @return 
- *   true if first.AbsoluteOffset < second.AbsoluteOffset
- * @return
- *   false otherwise
- */
-[[nodiscard]] constexpr auto operator<(JumpOffset first, JumpOffset second) noexcept -> bool {
-    return first.AbsoluteOffset < second.AbsoluteOffset;
-}
-
-
 class FunctionUnit {
     public:
         FunctionUnit(VM::Containers::Symbol, VM::Emit::Emitter, std::map<uint32_t, std::string> calls);
@@ -135,15 +79,15 @@ class FunctionBuilder {
         auto CheckIfReturns() -> void;
 
     private:
-        std::string                       _name;
-        uint16_t                          _registerCount;
-        uint16_t                          _argumentCount;
-        bool                              _doesReturn;
-        VM::Emit::Emitter                 _emitter;
+        std::string                     _name;
+        uint16_t                        _registerCount;
+        uint16_t                        _argumentCount;
+        bool                            _doesReturn;
+        VM::Emit::Emitter               _emitter;
 
-        std::map<JumpOffset, std::string> _jumps;
-        std::map<std::string, int32_t>    _labels;
-        std::map<uint32_t, std::string>   _calls;
+        std::map<int32_t, std::string>  _jumps;
+        std::map<std::string, int32_t>  _labels;
+        std::map<uint32_t, std::string> _calls;
 };
 
 /**

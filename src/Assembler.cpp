@@ -74,17 +74,12 @@ auto FunctionBuilder::AddJump(VM::Instructions::Opcode opcode, std::string label
     if (!VM::Instructions::IsJump(opcode))
         throw Error::InstructionError{ "Opcode isn't a jump" };
     
-    // Before emitting a new instruction, 
-    // get the current relative and absolute offset
-    // of the first instruction in the buffer
-    JumpOffset offsets{ static_cast<int32_t>(_emitter.Count()), static_cast<int32_t>(_emitter.Count() * 4) };
-
-    // Will patch this later
-    _emitter.Emit(opcode, 0);
-
     // No need for error checking, since instructions
     // are ordered
-    _jumps.try_emplace(offsets, label);
+    _jumps.try_emplace(_emitter.Count(), label);
+    
+    // Will patch this later
+    _emitter.Emit(opcode, 0);
 }
 
 auto FunctionBuilder::AddCall(std::string function) -> void {
@@ -109,19 +104,17 @@ auto FunctionBuilder::Finalize() -> FunctionUnit try {
     CheckIfReturns();
 
     for (const auto& [jmpOffst, label] : _jumps) {
-        auto [jmpRelOffst, jmpAbsOffst] = jmpOffst;
-
         // First, try finding a label.
         // This will throw exception if label doesn't exist
         // which is perfectly fine.
-        auto labelAbsOffst = _labels.at(label);
+        auto labelOffst = _labels.at(label);
 
         // If label is ahead of current jump -> jump forward
         // Otherwise jump backward
-        auto trueOffset = labelAbsOffst - jmpAbsOffst;
+        auto trueOffset = labelOffst - jmpOffst * 4;
 
         // Patch jump
-        _emitter.At(jmpRelOffst).PatchOffset(trueOffset);
+        _emitter.At(jmpOffst).PatchOffset(trueOffset);
     }
 
     VM::Containers::Symbol s{ std::move(_name), _registerCount, _argumentCount, 0, static_cast<uint32_t>(_emitter.Count() * 4), _doesReturn };

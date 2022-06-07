@@ -11,6 +11,14 @@ auto main(void) -> int try {
     
     Assembler as{  };
 
+    as.BeginFunction("main", 1, 0, false);
+    {
+        as.LoadConstant(0, 40ul);
+        as.AddCall("fib");
+        as.AddVoid(ret);
+    }
+    as.EndFunction();
+
     // Fibonacci(): Value
     as.BeginFunction("fib", 4, 1, true);
     {
@@ -42,19 +50,11 @@ auto main(void) -> int try {
     }
     as.EndFunction();
 
-    as.BeginFunction("main", 1, 0, false);
-    {
-        as.LoadConstant(0, 20ul);
-        as.AddCall("fib");
-        as.AddVoid(ret);
-    }
-    as.EndFunction();
-
     auto e = as.Patch("Test");
-
+    
     VM v{ std::move(e) };
     v.Run();
-
+    
     return 0;
 } catch (std::exception& e) {
     puts(e.what());

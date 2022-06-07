@@ -21,7 +21,7 @@
 namespace Yun::VM::Emit {
 
 auto Instruction::Serialize(uint32_t* buffer) -> void {
-    uint32_t instruction = 0;;
+    uint32_t instruction = 0;
 
     instruction |= static_cast<uint8_t>(_opcode) << 24;
 
@@ -51,7 +51,7 @@ auto Emitter::Serialize() -> Containers::InstructionBuffer {
     size_t index = 0;
     for (auto instruction : _instructions) {
         instruction.Serialize(buffer.begin() + index);
-        index += 4;
+        index += 1;
     }
     return buffer;
 }
@@ -60,7 +60,7 @@ auto Emitter::Serialize() -> Containers::InstructionBuffer {
     size_t index = 0;
     for (auto instruction : _instructions) {
         instruction.Serialize(buffer + index);
-        index += 4;
+        index += 1;
     }
     return index;
 }

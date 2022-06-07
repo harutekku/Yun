@@ -53,38 +53,37 @@ ExecutionUnit::ExecutionUnit(std::string name, Containers::SymbolTable symbols, 
 
 [[nodiscard]] auto ExecutionUnit::DisassembleInstruction(size_t offset) -> size_t {
     using enum Instructions::Opcode;
-    printf("  0x%04zx | ", offset);
+    printf("    0x%04zx | ", offset * 4);
 
-    const auto buffer = _buffer.begin();
+    auto instruction = _buffer.begin()[offset++];
+    auto op = (instruction >> 24) & 0xFF;
+    auto dest = (instruction >> 12) & 0xFFF;
+    auto src = (instruction) & 0xFFF;
 
-    auto byte = buffer[offset++];
-    if (byte > static_cast<uint8_t>(hlt)) {
+    if (op > static_cast<uint8_t>(hlt)) {
         puts("<err>");
         return offset;
     }
+
+    auto opcode = static_cast<Yun::VM::Instructions::Opcode>(op);
     
-    auto opcode = static_cast<Instructions::Opcode>(byte);
 
     int args = OpcodeCount(opcode);
-    if (args == 1) {
-        int32_t dest = 0;
-        std::memcpy(&dest, &buffer[offset], sizeof(dest));
-        offset += 4;
-        printf(" %s  %x\n", OpcodeToString(opcode), dest);
-    } else if (args == 2) {
-        int16_t dest;
-        int16_t src;
-        std::memcpy(&dest, &buffer[offset], 2);
-        std::memcpy(&src, &buffer[offset + 2], 2);
-        offset += 4;
-        
-        if (opcode == ldconst)
-            printf(" %s  R%d, $0x%d\n", OpcodeToString(opcode), dest, src);
+    if (args == 1)
+        if (opcode == call)
+            printf(" %-12s @%s\n", OpcodeToString(opcode), _symbols.FindByLocation(instruction & 0xFFFFFF).Name.c_str());
+        else if (Instructions::IsJump(opcode))
+            printf(" %-12s 0x%x\n", OpcodeToString(opcode), instruction & 0xFFFFFF);
         else
-            printf(" %s  R%d, R%d\n", OpcodeToString(opcode), dest, src);
-    } else {
-        printf(" %s\n", OpcodeToString(opcode));
-    }
+            printf(" %-12s %x\n", OpcodeToString(opcode), dest);
+    else if (args == 2)
+        if (opcode == ldconst)
+            printf(" %-12s R%d, $0x%d\n", OpcodeToString(opcode), dest, src);
+        else
+            printf(" %-12s R%d, R%d\n", OpcodeToString(opcode), dest, src);
+    else
+        printf(" %-12s\n", OpcodeToString(opcode));
+
     return offset;
 }
 
@@ -99,11 +98,11 @@ auto ExecutionUnit::Disassemble() -> void {
 
     puts("\nInstructions:");
 
-    const size_t range = _buffer.end() - _buffer.begin();
+    const size_t range = (_buffer.end() - _buffer.begin()) / 4;
     size_t stIndex = 0;
-    for (size_t offset = 0; offset < range;) {
-        if (stIndex < _symbols.Count() && _symbols.At(stIndex).Start == offset) {
-                puts(_symbols.At(stIndex).PrettyFunctionSignature().c_str());
+    for (size_t offset = 0; offset != range;) {
+        if (stIndex < _symbols.Count() && _symbols.At(stIndex).Start == offset * 4) {
+                printf("  %s\n", _symbols.At(stIndex).PrettyFunctionSignature().c_str());
                 ++stIndex;
         }
         offset = DisassembleInstruction(offset);
@@ -130,7 +129,7 @@ auto VM::Run() -> void {
     if (entryPoint.Start > (_unit.StopPC() - pc))
        throw Error::VMError{ "Invalid entry point offset" };
     else
-        pc += entryPoint.Start;
+        pc += entryPoint.Start / 4;
     
     Containers::Frame currentFrame{ entryPoint.End - 1, entryPoint.Registers, entryPoint.DoesReturn, entryPoint.End };
     _callStack.Push(currentFrame);
@@ -152,7 +151,7 @@ auto VM::Run() -> void {
 
         if (auto res = Instructions::OpcodeCount(op); res == 1) {
             if (Instructions::IsJump(op) || op == Instructions::Opcode::call)
-                destIndex = *pc & 0x00FFFFFF;
+                destIndex = (*pc & 0x00FFFFFF) >> 2;
             else
                 destIndex = (*pc & 0x00FFF000) >> 12;
             srcIndex  = 0;
@@ -164,7 +163,7 @@ auto VM::Run() -> void {
             srcIndex  = 0;
         }
 
-        size = 4;
+        size = 1;
 
         #pragma region Interpreter
 
@@ -668,7 +667,7 @@ auto VM::Run() -> void {
             currentFrame.ReturnAddress = pc - _unit.StartPC() + size;
             _callStack.Push(currentFrame);
 
-            const auto& symbol = _unit.SymbolLookup(destIndex);
+            const auto& symbol = _unit.SymbolLookup(destIndex << 2);
 
             // Allocate new registers
             _registers.Allocate(symbol.Registers);

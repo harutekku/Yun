@@ -1,162 +1,106 @@
-/**
- * @file
- *   Exceptions.hpp
- * @author
- *   Harutekku @link https://github.com/harutekku @endlink
- * @brief
- *   Exceptions used in project 
- * @version
- *   0.0.1
- * @date
- *   2022-05-24
- * @copyright
- *   Copyright (c) 2022
- * 
- */
 #ifndef EXCEPTIONS_HPP
 #define EXCEPTIONS_HPP
 
 // C++ header files
+#include <exception>
 #include <stdexcept>
+#include <string>
+#include <type_traits>
+// My header files
+#include "Instructions.hpp"
 
-/**
- * @brief 
- *   Namespace Yun::Error provides exception classes used for
- *   error handling by all other classes
- */
+namespace Yun::VM::Primitives {
+    enum class Type : uint8_t;
+};
+
 namespace Yun::Error {
 
-/**
- * @brief 
- *   An exception class used internally by Emitter and Assembler.
- *   Used to indicate some problem with processed instruction
- */
-class InstructionError : public std::runtime_error {
+class InstructionError : public std::exception {
     public:
-        /**
-         * @brief
-         *   Construct a new InstructionError object
-         * @param message
-         *   An information to pass down the stack
-         */
-        InstructionError(const char* message);
+        InstructionError(std::string message);
 
-        /**
-         * @brief
-         *   Destroy the Instruction Error object
-         */
+        InstructionError(std::string message, VM::Instructions::Opcode opcode, int args = 0);
+
         ~InstructionError() noexcept = default;
-};
 
-/**
- * @brief 
- *   An exception class used internally by the Yun virtual machine.
- *   Used to indicate operand type mismatch
- */
-class TypeError : public std::runtime_error {
     public:
-        /**
-         * @brief
-         *   Construct a new TypError object
-         * @param message
-         *   An information to pass down the stack
-         */
-        TypeError(const char* message);
+        [[nodiscard]] auto what() const noexcept -> const char* override;
 
-        /**
-         * @brief
-         *   Destroy the Type Error object
-         */
-        ~TypeError() noexcept = default;
+    private:
+        std::string _message;
 };
 
-/**
- * @brief 
- *   An exception class used internally by the Yun virtual machine.
- *   Used to indicate integer arithmetic error, namely division by zero.
- */
+class TypeError : public std::exception {
+    public:
+        TypeError(std::string, uint32_t);
+        TypeError(std::string, VM::Primitives::Type);
+        TypeError(std::string, VM::Primitives::Type, VM::Primitives::Type);
+
+        ~TypeError() noexcept = default;
+
+    public:
+        [[nodiscard]] auto what() const noexcept -> const char* override;
+
+    private:
+        std::string _message;
+};
+
 class IntegerArithmeticError : public std::runtime_error {
     public:
-        /**
-         * @brief
-         *   Construct a new IntegerArithmeticError object
-         * @param message 
-         *   An information to pass down the stack
-         */
         IntegerArithmeticError(const char* message);
 
-        /**
-         * @brief
-         *   Destroy the Integer Arithmetic Error object
-         */
         ~IntegerArithmeticError() noexcept = default;
 };
 
-/**
- * @brief 
- *   An exception class used internally by the Assembler.
- *   Used to indicate label and consants-related errors.
- */
-class AssemblerError : public std::runtime_error {
+class AssemblerError : public std::exception {
     public:
-        /**
-         * @brief
-         *   Construct a new AssemblerError object
-         * @param message 
-         *   An information to pass down the stack
-         */
-        AssemblerError(const char* message);
+        AssemblerError(std::string);           // General
+        AssemblerError(std::string, int);      // For label redefinitions
+        AssemblerError(std::string, int, int); // For out of range errors
 
-        /**
-         * @brief
-         *   Destroy the Assembler Error object
-         */
         ~AssemblerError() noexcept = default;
+
+    public:
+        [[nodiscard]] auto what() const noexcept -> const char* override;
+
+    private:
+        std::string _message;
 };
 
-/**
- * @brief 
- *   An exception class used internally by the RegisterArray.
- *   Used to indicate allocation errors.
- */
 class AllocationError : public std::runtime_error {
     public:
-        /**
-         * @brief
-         *   Construct a new AllocationError object
-         * @param message 
-         *   An information to pass down the stack
-         */
         AllocationError(const char* message);
 
-        /**
-         * @brief
-         *   Destroy the AllocationError object
-         */
         ~AllocationError() noexcept = default;
 };
 
-/**
- * @brief 
- *   An exception class used internally by the Yun virtual machine.
- *   Used to signal internal errors
- */
 class VMError : public std::runtime_error {
     public:
-        /**
-         * @brief
-         *   Construct a new TypError object
-         * @param message
-         *   An information to pass down the stack
-         */
         VMError(const char* message);
 
-        /**
-         * @brief
-         *   Destroy the Type Error object
-         */
         ~VMError() noexcept = default;
 };
+
+class RangeError : public std::exception {
+    public:
+        RangeError(std::string, size_t, size_t);
+        RangeError(std::string);
+    
+    public:
+        [[nodiscard]] auto what() const noexcept -> const char* override;
+
+    private:
+        std::string _message;
+};
+
+class LexerError : public std::exception {
+
+};
+
+class ParserError : public std::exception {
+
+};
+
 }
 
 #endif

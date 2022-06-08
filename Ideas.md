@@ -19,8 +19,8 @@
 - Format
 ```
 
-  opcode    dest16    src16
-  opcode    offset32
+  opcode    dest12    src12
+  opcode    offset24
 
 ```
 
@@ -52,6 +52,12 @@
 - Calls [2 instructions]
   - call
   - ret
+- Arrays [3 instructions]
+  - newarray
+  - arraycount
+  - store
+  - load
+  - advance
 - Misc [2 instructions]
   - nop
   - hlt
@@ -63,10 +69,22 @@
   - 8 bits for opcode
   - 12 bits for first operand
   - 12 bits for second operand
-  - 24 bits for jump offset
+  - 24 bits for jump/call offset
 - Turns out, this was a great idea
   - From 48s on `Fib(40)` we went down to 33s
+  - Update: now it's down to 25s
   - We're officialy faster than Python
+- What about arrays?
+  - Creation - `newarray   count12, type12`
+  - Count    - `arraycount ref12`
+  - Load     - `load       dest12,  ref12`
+  - Store    - `store      ref12,   src12`
+  - Advance  - `advance    ref12,   index12`
+
+## GC
+
+- Get rid of slow reference counting
+  - Maybe implement mark-and-sweep with some concurrency
 
 ## TODOs
 
@@ -74,8 +92,16 @@
 
 [x] Implement functions
 
-[ ] Optimize for speed
+[x] Optimize for speed
 
-[ ] Add string validation - can't be empty
+[x] Improve error reporting
+
+[ ] Improve GC - reference counting is relatively easy
 
 [ ] Implement arrays
+
+[ ] Implement lexer
+
+[ ] Implement recursive-descent parser
+
+[ ] Go inna woods

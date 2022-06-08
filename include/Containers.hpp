@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <stack>
 #include <memory>
+#include <queue>
 #include "Value.hpp"
 #include "Instructions.hpp"
 #include "Exceptions.hpp"
@@ -16,6 +17,8 @@ class Assembler;
 }
 
 namespace Yun::VM::Containers {
+class ArrayHeap;
+
 class RegisterArray {
     public:
         RegisterArray(size_t count = 1024);
@@ -23,9 +26,13 @@ class RegisterArray {
     public:
         [[nodiscard]] auto At(std::size_t) -> Primitives::Value&;
         auto Allocate(std::size_t) -> void;
-        auto Deallocate(std::size_t) -> void;
-        auto Copy(std::size_t, std::size_t) -> void;
-        auto SaveReturnValue(std::size_t) -> void;
+        auto Deallocate(std::size_t, ArrayHeap&) -> void;
+        auto Copy(std::size_t, std::size_t, ArrayHeap&) -> void;
+        auto SaveReturnValue(std::size_t, ArrayHeap&) -> void;
+
+        [[nodiscard]] constexpr auto operator[](size_t index) -> Primitives::Value& {
+            return _registers[index];
+        }
 
     public:
         auto Print() -> void;
@@ -137,6 +144,9 @@ class CallStack {
     public:
         auto Push(Frame) -> void;
         [[nodiscard]] auto Pop() -> Frame;
+        [[nodiscard]] constexpr auto Count() -> size_t {
+            return _count;
+        }
 
     public:
         [[nodiscard]] auto RelativeOffset() -> size_t;
@@ -148,6 +158,45 @@ class CallStack {
         size_t             _count;
         size_t             _relativeOffset;
         std::vector<Frame> _frames;
+};
+
+class Array {
+    using Value = Primitives::Value;
+    public:
+        Array(Primitives::Type, size_t);
+        ~Array() = default;
+
+    public:
+        [[nodiscard]] auto Count() -> size_t;
+        [[nodiscard]] auto Load(size_t) -> Primitives::Value;
+        auto Store(size_t, Primitives::Value) -> void;
+        auto Advance(Primitives::Reference&, uint32_t) -> void;
+
+    private:
+        Primitives::Type            _elementType;
+        size_t                      _count;
+        std::unique_ptr<uint64_t[]> _elements;
+};
+
+struct HeapRecord {
+    uint32_t               Id;
+    uint32_t               RefCount;
+    std::unique_ptr<Array> Pointer;
+};
+
+class ArrayHeap {
+    public:
+        ArrayHeap(size_t initialSize = 1024);
+
+    public:
+        [[nodiscard]] auto NewArray(uint32_t, uint32_t) -> Primitives::Reference;
+        auto Notify(uint32_t, bool) -> void;
+        [[nodiscard]] auto GetArray(uint32_t) -> Array*;
+
+    private:
+        size_t                  _index;
+        std::vector<HeapRecord> _heapArrays;
+        std::queue<uint32_t>    _idsForReuse;
 };
 
 }

@@ -50,7 +50,7 @@ FunctionUnit::FunctionUnit(VM::Containers::Symbol symbol, VM::Emit::Emitter emit
 
 auto FunctionBuilder::NewFunction(std::string name, uint16_t registerCount, uint16_t argumentCount, bool doesReturn) -> void {
     if (argumentCount > registerCount || (registerCount == 0 && doesReturn))
-        throw Error::AssemblerError{ "Argument count bigger than register count" };
+        throw Error::AssemblerError{ "Argument count bigger than register count: ", argumentCount, registerCount };
     _name          = std::move(name);
     _registerCount = registerCount;
     _argumentCount = argumentCount;
@@ -67,12 +67,12 @@ auto FunctionBuilder::AddLabel(std::string label) -> void {
 
     // If failed, report a redefinition error
     if (!success)
-        throw Error::AssemblerError{ "Label redefinition" };
+        throw Error::AssemblerError{ "Label redefinition: found " + label + " at ", it->second };
 }
 
 auto FunctionBuilder::AddJump(VM::Instructions::Opcode opcode, std::string label) -> void {
     if (!VM::Instructions::IsJump(opcode))
-        throw Error::InstructionError{ "Opcode isn't a jump" };
+        throw Error::InstructionError{ "Opcode isn't a jump: ", opcode };
     
     // No need for error checking, since instructions
     // are ordered
@@ -92,7 +92,7 @@ auto FunctionBuilder::AddCall(std::string function) -> void {
 
 auto FunctionBuilder::AddBinary(VM::Instructions::Opcode opcode, uint32_t dest, uint32_t src) -> void {
     if (dest >= _registerCount || (opcode != VM::Instructions::Opcode::ldconst && src >= _registerCount))
-        throw Error::AssemblerError{ "Register index out of range" };
+        throw Error::AssemblerError{ "Register index out of range: ", static_cast<int>(dest), static_cast<int>(src) };
     _emitter.Emit(opcode, dest, src);
 }
 
@@ -100,10 +100,11 @@ auto FunctionBuilder::AddVoid(VM::Instructions::Opcode opcode) -> void {
     _emitter.Emit(opcode);
 }
 
-auto FunctionBuilder::Finalize() -> FunctionUnit try {
+auto FunctionBuilder::Finalize() -> FunctionUnit {
     CheckIfReturns();
 
     for (const auto& [jmpOffst, label] : _jumps) {
+        try {
         // First, try finding a label.
         // This will throw exception if label doesn't exist
         // which is perfectly fine.
@@ -115,21 +116,27 @@ auto FunctionBuilder::Finalize() -> FunctionUnit try {
 
         // Patch jump
         _emitter.At(jmpOffst).PatchOffset(trueOffset);
+
+        } catch (std::out_of_range& e) {
+            throw Error::AssemblerError{ "No " + label + " found inside function " + _name };
+        }
     }
 
     VM::Containers::Symbol s{ std::move(_name), _registerCount, _argumentCount, 0, static_cast<uint32_t>(_emitter.Count() * 4), _doesReturn };
 
 
     return { s, _emitter, _calls };
-} catch (std::out_of_range& e) {
-    throw Error::AssemblerError{ "No label found" };
+}
+
+[[nodiscard]] auto FunctionBuilder::FunctionName() const -> const std::string& {
+    return _name;
 }
 
 auto FunctionBuilder::CheckIfReturns() -> void {
     auto last = _emitter.Count();
 
     if (last == 0 || _emitter.At(last - 1).Opcode() != VM::Instructions::Opcode::ret)
-        throw Error::AssemblerError{ "Function must contain `ret` instruction" };
+        throw Error::AssemblerError{ "Function" + _name + "must contain `ret` instruction" };
 }
 
 auto Assembler::BeginFunction(std::string name, uint16_t registerCount, uint16_t argumentCount, bool doesReturn) -> void {
@@ -137,7 +144,7 @@ auto Assembler::BeginFunction(std::string name, uint16_t registerCount, uint16_t
         _builder.NewFunction(name, registerCount, argumentCount, doesReturn);
         _isBuildingAFunction = true;
     } else
-        throw Error::AssemblerError{ "Can't build a new function when one is already being built" };
+        throw Error::AssemblerError{ "Unfinished build of a function: " + _builder.FunctionName() };
 }
 
 auto Assembler::EndFunction() -> void {
@@ -161,6 +168,8 @@ auto Assembler::AddJump(VM::Instructions::Opcode opcode, std::string label) -> v
 }
 
 auto Assembler::AddCall(std::string function) -> void {
+    if (!_isBuildingAFunction)
+        throw Error::AssemblerError{ "Can't add an instruction when not in build mode" };
     _builder.AddCall(function);
 }
 

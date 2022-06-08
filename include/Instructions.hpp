@@ -17,7 +17,6 @@
 #define INSTRUCTIONS_HPP
 
 // C header files
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 // C++ header files
@@ -63,6 +62,13 @@ enum class Opcode : uint8_t {
     // Constants - for now, only numbers
     ldconst,
     mov,
+
+    // Array instructions
+    newarray,
+    arraycount,
+    load,
+    store,
+    advance,
 
     // Misc
     nop,
@@ -127,6 +133,11 @@ enum class Opcode : uint8_t {
     case fcmp:
     case ldconst:
     case mov:
+    case newarray:
+    case load:
+    case store:
+    case advance:
+    case arraycount:
         return 2;
     case bnot:
     case i32neg:
@@ -410,6 +421,16 @@ enum class Opcode : uint8_t {
         return "ldconst";
     case mov:
         return "mov";
+    case newarray:
+        return "newarray";
+    case arraycount:
+        return "arraycount";
+    case load:
+        return "load";
+    case store:
+        return "store";
+    case advance:
+        return "advance";
     case nop:
         return "nop";
     case hlt:

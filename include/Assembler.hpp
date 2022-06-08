@@ -74,6 +74,9 @@ class FunctionBuilder {
 
     public:
         [[nodiscard]] auto Finalize() -> FunctionUnit;
+
+    public:
+        [[nodiscard]] auto FunctionName() const -> const std::string&;
     
     private:
         auto CheckIfReturns() -> void;

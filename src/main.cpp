@@ -11,41 +11,12 @@ auto main(void) -> int try {
     
     Assembler as{  };
 
-    as.BeginFunction("main", 1, 0, false);
+    as.BeginFunction("main", 2, 0, false);
     {
-        as.LoadConstant(0, 40ul);
-        as.AddCall("fib");
-        as.AddVoid(ret);
-    }
-    as.EndFunction();
-
-    // Fibonacci(): Value
-    as.BeginFunction("fib", 4, 1, true);
-    {
-        as.LoadConstant(1, 1ul);
-        as.AddBinary(cmp, 0, 1);
-        as.AddJump(jgt, "end");
-
-        as.AddVoid(ret);
-
-        as.AddLabel("end");
-
-        as.AddBinary(mov, 3, 0);
-        as.AddBinary(u64sub, 3, 1);
-        
-        as.AddCall("fib");
-
-        as.AddBinary(mov, 2, 3);
-
-        as.LoadConstant(1, 2ul);
-        as.AddBinary(mov, 3, 0);
-        as.AddBinary(u64sub, 3, 1);
-        as.AddCall("fib");
-
-        as.AddBinary(u64add, 2, 3);
-
-        as.AddBinary(mov, 0, 2);
-
+        as.LoadConstant(0, 16u);
+        as.LoadConstant(1, 1u);
+        as.AddBinary(newarray, 0, 1);
+        as.LoadConstant(0, 2);
         as.AddVoid(ret);
     }
     as.EndFunction();

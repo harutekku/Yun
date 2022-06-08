@@ -40,7 +40,6 @@ auto Instruction::Serialize(uint32_t* buffer) -> void {
 
 auto Emitter::Emit(Instruction instruction) -> void {
     _instructions.push_back(instruction);
-
     _size += 4;
 }
 

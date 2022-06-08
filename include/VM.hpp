@@ -1,18 +1,3 @@
-/**
- * @file
- *   VM.hpp
- * @author
- *   Harutekku @link https://github.com/harutekku @endlink
- * @brief
- *   The core interface of the Yun virtual machine
- * @version
- *   0.0.1
- * @date
- *   2022-05-24
- * @copyright
- *   Copyright (c) 2022
- * 
- */
 #ifndef VM_HPP
 #define VM_HPP
 
@@ -60,18 +45,11 @@ class VM final {
     private:
         [[nodiscard]] inline auto GetRegister(uint16_t destIndex) -> Primitives::Value&;
 
-        [[nodiscard]] inline auto GetRegisters(uint16_t srcIndex, uint16_t destIndex) -> std::pair<Primitives::Value&, Primitives::Value&>;
-        
     private:
         ExecutionUnit             _unit;
-        /**
-         * @brief 
-         *   Contains all the allocated registers
-         */
         Containers::RegisterArray _registers;
-        
         Containers::CallStack     _callStack;
-
+        Containers::ArrayHeap     _heap;
         int32_t                   _flags;
 };
 

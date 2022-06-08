@@ -39,7 +39,8 @@ enum class Type : uint8_t {
     Uint32,
     Uint64,
     Float32,
-    Float64
+    Float64,
+    Reference,
 };
 
 [[nodiscard]] constexpr auto TypeToString(Type type) noexcept -> const char* {
@@ -67,6 +68,8 @@ enum class Type : uint8_t {
         return "Float32";
     case Float64:
         return "Float64";
+    case Reference:
+        return "Reference";
     default:
         return "<err>";
     }
@@ -96,17 +99,29 @@ template<typename T>
         return Type::Float64;
 }
 
+class Reference {
+    public:
+        [[nodiscard]] auto ToString() const -> std::string;
+    public:
+        uint32_t HeapID;
+        uint32_t ArrayIndex;
+};
+
 
 class Value {
     public:  // Special member functions
         constexpr Value()
-            :_type{ Type::Uninit } {
+            :_as{  }, _type{ Type::Uninit } {
         }
 
         template<typename T>
         constexpr Value(T value)
             :_type{ TAsEnum<T>() } {
             As<T>() = value;
+        }
+
+        constexpr Value(Type type)
+            :_as{  }, _type{ type } {
         }
 
     public:  // As<T> and Is()
@@ -120,44 +135,55 @@ class Value {
         template<typename T>
         [[nodiscard]] auto As() const noexcept -> const T&;
 
+        [[nodiscard]] auto AsPtr() -> void* {
+            return &_as;
+        }
+
         auto Assign(const Value& value) noexcept -> void {
+            if (this == &value)
+                return;
             _type = value._type;
-            std::memcpy(&uint64, &value.uint64, sizeof(uint64));
+            std::memcpy(&_as, &value._as, sizeof(_as));
+        }
+
+        auto Assign(const Reference& ref) noexcept -> void {
+            _type = Primitives::Type::Reference;
+            _as.ref = ref;
         }
     
     public:  // Arithmetic operations
         template<typename T, typename = typename std::enable_if_t<std::is_signed_v<T> || std::is_floating_point_v<T>, T>>
         constexpr auto Neg() -> void {
             if (_type != TAsEnum<T>())
-                throw Error::TypeError{ "Bad type" };
+                throw Error::TypeError{ "Value of this type can't be negated: ", _type };
             As<T>() = -As<T>();
         } 
 
         template<typename T>
         constexpr auto Add(const Value& value) -> void {
-            if (Is() != value.Is() || _type != TAsEnum<T>() )
-                throw Error::TypeError{ "Incompatible types" };
+            if (_type != value._type || _type != TAsEnum<T>() )
+                throw Error::TypeError{ "Incompatible types: ", _type, value._type };
             As<T>() += value.As<T>();
         }
 
         template<typename T>
         constexpr auto Sub(const Value& value) -> void {
-            if (Is() != value.Is() || _type != TAsEnum<T>())
-                throw Error::TypeError{ "Incompatible types" };
+            if (_type != value._type || _type != TAsEnum<T>() )
+                throw Error::TypeError{ "Incompatible types: ", _type, value._type };
             As<T>() -= value.As<T>();
         }
 
         template<typename T>
         constexpr auto Mul(const Value& value) -> void {
-            if (Is() != value.Is() || _type != TAsEnum<T>())
-                throw Error::TypeError{ "Incompatible types" };
+            if (_type != value._type || _type != TAsEnum<T>() )
+                throw Error::TypeError{ "Incompatible types: ", _type, value._type };
             As<T>() *= value.As<T>();
         }
 
         template<typename T>
         constexpr auto Div(const Value& value) -> void {
-            if (Is() != value.Is() || _type != TAsEnum<T>())
-                throw Error::TypeError{ "Incompatible types" };
+            if (_type != value._type || _type != TAsEnum<T>() )
+                throw Error::TypeError{ "Incompatible types: ", _type, value._type };
             if constexpr (std::is_integral_v<T>)
                 if (value.As<T>() == 0)
                     throw Error::IntegerArithmeticError{ "Division by zero" };
@@ -166,8 +192,8 @@ class Value {
 
         template<typename T>
         constexpr auto Rem(const Value& value) -> void {
-            if (Is() != value.Is() || _type != TAsEnum<T>())
-                throw Error::TypeError{ "Incompatible types" };
+            if (_type != value._type || _type != TAsEnum<T>() )
+                throw Error::TypeError{ "Incompatible types: ", _type, value._type };
             if constexpr (std::is_integral_v<T>) {
                 if (value.As<T>() == 0)
                     throw Error::IntegerArithmeticError{ "Remainder by zero" };
@@ -179,96 +205,96 @@ class Value {
 
         template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
         constexpr auto And(const Value& value) -> void {
-            if (Is() != value.Is() || _type != TAsEnum<T>())
-                throw Error::TypeError{ "Incompatible types" };
+            if (_type != value._type || _type != TAsEnum<T>() )
+                throw Error::TypeError{ "Incompatible types: ", _type, value._type };
             As<T>() &= value.As<T>();
         }
 
         template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
         constexpr auto Or(const Value& value) -> void {
-            if (Is() != value.Is() || _type != TAsEnum<T>())
-                throw Error::TypeError{ "Incompatible types" };
+            if (_type != value._type || _type != TAsEnum<T>() )
+                throw Error::TypeError{ "Incompatible types: ", _type, value._type };
             As<T>() |= value.As<T>();
         }
 
         template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
         constexpr auto Xor(const Value& value) -> void {
-            if (Is() != value.Is() || _type != TAsEnum<T>())
-                throw Error::TypeError{ "Incompatible types" };
+            if (_type != value._type || _type != TAsEnum<T>() )
+                throw Error::TypeError{ "Incompatible types: ", _type, value._type };
             As<T>() ^= value.As<T>();
         }
 
         template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
         constexpr auto ShiftLeft(const Value& value) -> void {
-            if (value.Is() != Type::Uint32 || _type != TAsEnum<T>())
-                throw Error::TypeError{ "Incompatible types" };
-            As<T>() <<= value.uint32;
+            if (value._type != Type::Uint32 || _type != TAsEnum<T>() )
+                throw Error::TypeError{ "Incompatible types: ", _type, value._type };
+            As<T>() <<= value._as.uint32;
         }
 
         template<typename T, typename = std::enable_if_t<std::is_integral_v<T>, T>>
         constexpr auto ShiftRight(const Value& value) -> void {
-            if (value.Is() != Type::Uint32 || _type == TAsEnum<T>())
-                throw Error::TypeError{ "Incompatible types" };
-            As<T>() >>= value.uint32;
+            if (value._type != Type::Uint32 || _type != TAsEnum<T>() )
+                throw Error::TypeError{ "Incompatible types: ", _type, value._type };
+            As<T>() >>= value._as.uint32;
         }
 
         constexpr auto Not() -> void {
             if (!IsIntegral())
-                throw Error::TypeError{ "Incompatible type" };
-            uint64 = ~uint64;
+                throw Error::TypeError{ "Non-intergral type: ", _type };
+            _as.uint64 = ~_as.uint64;
         }
 
         template<typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>, T>>
         [[nodiscard]] auto Compare(const Value& value) -> int32_t {
-            if (Is() != value.Is())
-                throw Error::TypeError{ "Incompatible types" };
+            if (_type != value._type)
+                throw Error::TypeError{ "Incompatible types for comparison: ", _type, value._type };
 
             if constexpr (std::is_signed_v<T>) {
                 if (_type == Type::Int32) {
-                    if (int32 < value.int32)
+                    if (_as.int32 < value._as.int32)
                         return -1;
-                    else if (int32 > value.int32)
+                    else if (_as.int32 > value._as.int32)
                         return 1;
                     else
                         return 0;
                 } else if (_type == Type::Int64) {
-                    if (int64 < value.int64)
+                    if (_as.int64 < value._as.int64)
                         return -1;
-                    else if (int64 > value.int64)
+                    else if (_as.int64 > value._as.int64)
                         return 1;
                     else
                         return 0;
                 } else
-                    throw Error::TypeError{ "Invalid signed type" };
+                    throw Error::TypeError{ "Can't compare i8 or i16: ", _type };
             } else if constexpr (std::is_unsigned_v<T>) {
                 if (_type == Type::Uint32) {
-                    if (uint32 < value.uint32)
+                    if (_as.uint32 < value._as.uint32)
                         return -1;
-                    else if (uint32 > value.uint32)
+                    else if (_as.uint32 > value._as.uint32)
                         return 1;
                     else
                         return 0;
                 } else if (_type == Type::Uint64) {
-                    if (uint64 < value.uint64)
+                    if (_as.uint64 < value._as.uint64)
                         return -1;
-                    else if (uint64 > value.uint64)
+                    else if (_as.uint64 > value._as.uint64)
                         return 1;
                     else
                         return 0;
                 } else
-                    throw Error::TypeError{ "Invalid unsigned type" };
+                    throw Error::TypeError{ "Can't compare u8 or u16: ", _type };
             } else if constexpr (std::is_floating_point_v<T>) {
                 if (_type == Type::Float32) {
-                    if (float32 < value.float32)
+                    if (_as.float32 < value._as.float32)
                         return -1;
-                    else if (float32 > value.float32)
+                    else if (_as.float32 > value._as.float32)
                         return 1;
                     else
                         return 0;
                 } else {
-                    if (float64 < value.float64)
+                    if (_as.float64 < value._as.float64)
                         return -1;
-                    else if (float64 > value.float64)
+                    else if (_as.float64 > value._as.float64)
                         return 1;
                     else
                         return 0;
@@ -279,7 +305,7 @@ class Value {
         template<typename From, typename To>
         constexpr auto Convert() -> void {
             if (_type != TAsEnum<From>())
-                throw Error::TypeError{ "Bad cast" };
+                throw Error::TypeError{ "Invalid type for conversion", _type };
             _type       = TAsEnum<To>();
             As<From>()  = (To)As<From>();
         }
@@ -305,17 +331,18 @@ class Value {
     
     private: // Member values
         union {
-            int8_t   int8;
-            int16_t  int16;
-            int32_t  int32;
-            int64_t  int64;   // These are the defaults
-            uint8_t  uint8;
-            uint16_t uint16;
-            uint32_t uint32;
-            uint64_t uint64;  // These are the defaults
-            float    float32;
-            double   float64; // These are the defaults
-        };
+            int8_t    int8;
+            int16_t   int16;
+            int32_t   int32;
+            int64_t   int64;   // These are the defaults
+            uint8_t   uint8;
+            uint16_t  uint16;
+            uint32_t  uint32;
+            uint64_t  uint64;  // These are the defaults
+            float     float32;
+            double    float64; // These are the defaults
+            Reference ref;
+        } _as;
         Type       _type;
 };
 

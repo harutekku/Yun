@@ -21,6 +21,7 @@
 #include <cstdint>
 // C++ header files
 #include <span>
+#include <string>
 // My header files
 #include "Instructions.hpp"
 #include "Exceptions.hpp"
@@ -53,8 +54,8 @@ class Instruction {
          */
         constexpr Instruction(Instructions::Opcode opcode, uint32_t dest, uint32_t src)
             :_opcode{ opcode }, _dest{ static_cast<int32_t>(dest) }, _src{ static_cast<int32_t>(src) } {
-            if (Instructions::OpcodeCount(opcode) != 2)
-                throw Error::InstructionError{ "Invalid arg count" };
+            if (auto res = Instructions::OpcodeCount(opcode); res != 2)
+                throw Error::InstructionError{ "Ivalid argument count: ", opcode, res };
         }
         /**
          * @brief 
@@ -68,8 +69,8 @@ class Instruction {
          */
         constexpr Instruction(Instructions::Opcode opcode, int32_t offset)
             :_opcode{ opcode }, _dest{ offset }, _src{ 0 } {
-            if (Instructions::OpcodeCount(opcode) != 1)
-                throw Error::InstructionError{ "Invalid arg count" };
+            if (auto res = Instructions::OpcodeCount(opcode); res != 1)
+                throw Error::InstructionError{ "Invalid argument count: ", opcode, res };
         }
 
         /**
@@ -82,8 +83,8 @@ class Instruction {
          */
         constexpr Instruction(Instructions::Opcode opcode)
             :_opcode{ opcode }, _dest{ 0 }, _src{ 0 } {
-            if (Instructions::OpcodeCount(opcode) != 0)
-                throw Error::InstructionError{ "Invalid arg count" };        
+            if (auto res = Instructions::OpcodeCount(opcode); res != 0)
+                throw Error::InstructionError{ "Invalid argument count", opcode, res };        
         }
 
     public:
@@ -134,7 +135,7 @@ class Instruction {
          */
         constexpr auto PatchOffset(int32_t offset) -> void {
             if (!Instructions::IsJump(_opcode) && _opcode != Instructions::Opcode::call)
-                throw Error::InstructionError{ "Isn't a jump" };
+                throw Error::InstructionError{ "Opcode isn't a jump or a call: ", _opcode };
             _dest = offset;
         }
 

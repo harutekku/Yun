@@ -1,8 +1,13 @@
 #include "../include/Containers.hpp"
+#include <bit>
+#include <bits/utility.h>
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <exception>
 #include <iterator>
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 namespace Yun::VM::Containers {
@@ -12,8 +17,6 @@ RegisterArray::RegisterArray(size_t count)
 }
 
 [[nodiscard]] auto RegisterArray::At(size_t index) -> Primitives::Value& {
-    if (_index < index)
-        throw std::out_of_range{ "Register index out of range" };
     return _registers[index];
 }
 
@@ -23,19 +26,27 @@ auto RegisterArray::Allocate(size_t count) -> void {
     _index += count;
 }
 
-auto RegisterArray::Deallocate(size_t count) -> void {
-    if (_index < count)
-        throw Error::AllocationError{ "Can't deallocate more than `currentCount` registers" };
+auto RegisterArray::Deallocate(size_t count, ArrayHeap& heap) -> void {
+    for (size_t i = _index - count; i != _index; ++i)
+        if (_registers[i].Is() == Primitives::Type::Reference)
+            heap.Notify(_registers[i].As<Primitives::Reference>().HeapID, false);
     _index -= count;
 }
 
-auto RegisterArray::Copy(std::size_t base, std::size_t count) -> void {
+auto RegisterArray::Copy(std::size_t base, std::size_t count, ArrayHeap& heap) -> void {
     for (size_t i = 0; i != count; ++i)
-        _registers.at(_index - base + i) = _registers.at(_index - base - count + i);
+        if (auto ref = _registers.at(_index - base + i) = _registers.at(_index - base - count + i); ref.Is() == Primitives::Type::Reference)
+            heap.Notify(ref.As<Primitives::Reference>().HeapID, true);
 }
 
-auto RegisterArray::SaveReturnValue(std::size_t currentFrameCount) -> void {
-    _registers.at(_index - currentFrameCount - 1) = _registers.at(_index - currentFrameCount);
+auto RegisterArray::SaveReturnValue(std::size_t currentFrameCount, ArrayHeap& heap) -> void {
+    auto& oldLast = _registers.at(_index - currentFrameCount - 1);
+    auto& newFirst = _registers.at(_index - currentFrameCount);
+    if (oldLast.Is() == Primitives::Type::Reference)
+        heap.Notify(oldLast.As<Primitives::Reference>().HeapID, false);
+    oldLast = newFirst;
+    if (oldLast.Is() == Primitives::Type::Reference)
+        heap.Notify(oldLast.As<Primitives::Reference>().HeapID, true);
 }
 
 auto RegisterArray::Print() -> void {
@@ -165,4 +176,76 @@ auto CallStack::Push(Frame frame) -> void {
     return _count == 0;
 }
 
+#pragma region Arrays
+
+Array::Array(Primitives::Type type, size_t count)
+    :_elementType{ type }, _count{ count }, _elements{ std::make_unique<uint64_t[]>(count) } {
+}
+
+[[nodiscard]] auto Array::Count() -> size_t {
+    return _count;
+}
+
+[[nodiscard]] auto Array::Load(size_t index) -> Primitives::Value {
+    if (index > _count)
+        throw Error::RangeError{ "Index was higher than count: ", index, _count };
+
+    Primitives::Value retVal{ _elementType };
+    std::memcpy(retVal.AsPtr(), &_elements[index], sizeof(uint64_t));
+    return retVal;
+}
+
+auto Array::Store(size_t index, Primitives::Value value) -> void {
+    if (index > _count)
+        throw Error::RangeError{ "Index was higher than element count: ", index, _count };
+
+    _elements[index] = value.As<uint64_t>();
+}
+
+auto Array::Advance(Primitives::Reference& reference, uint32_t offset) -> void {
+    if (offset > _count) // Can cast this safely
+        throw Error::RangeError{ "Index was outside range: " + std::to_string(offset) + " not in [0;" + std::to_string(_count) + "]" };
+    else
+        reference.ArrayIndex = offset;
+}
+
+ArrayHeap::ArrayHeap(size_t initialSize)
+    :_index{ 0 }, _heapArrays(initialSize), _idsForReuse{  } {
+}
+
+[[nodiscard]] auto ArrayHeap::NewArray(uint32_t size, uint32_t type) -> Primitives::Reference {
+    if (type > static_cast<uint8_t>(Primitives::Type::Float64) || type < 1)
+        throw Error::TypeError{ "Unsupported type id: ", type };
+
+    uint32_t id = 0;
+    if (!_idsForReuse.empty()) {
+        id = _idsForReuse.back();
+        _idsForReuse.pop();
+    } else
+        id = _index++;
+    if (id == _heapArrays.capacity())
+        _heapArrays.resize(2 * id);
+    
+    _heapArrays[id] = { .Id = id, .RefCount = 1, .Pointer = std::make_unique<Array>(static_cast<Primitives::Type>(type), size) }; 
+    return { id, 0 };
+}
+
+auto ArrayHeap::Notify(uint32_t id, bool refAddElseSub) -> void {
+    if (refAddElseSub)
+        ++_heapArrays[id].RefCount;
+    else
+        --_heapArrays[id].RefCount;
+
+    if (_heapArrays[id].RefCount == 0) {
+        _heapArrays[id].Pointer = nullptr;
+        _idsForReuse.push(id);
+    }
+}
+
+[[nodiscard]] auto ArrayHeap::GetArray(uint32_t id) -> Array* {
+    return _heapArrays[id].Pointer.get();
+}
+
+#pragma endregion
+    
 }

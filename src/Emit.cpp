@@ -1,17 +1,3 @@
-/**
- * @file
- *   Assembler.cpp
- * @author
- *   Harutekku @link https://github.com/harutekku @endlink
- * @brief 
- *   Emitter and Instruction routines implementation
- * @version
- *   0.0.1
- * @date
- *   2022-05-24
- * @copyright
- *   Copyright (c) 2022
- */
 // C header files
 #include <cstring>
 // My header files

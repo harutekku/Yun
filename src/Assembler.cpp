@@ -1,17 +1,3 @@
-/**
- * @file
- *   Assembler.cpp
- * @author
- *   Harutekku @link https://github.com/harutekku @endlink
- * @brief 
- *   Assembler routines implementation
- * @version
- *   0.0.1
- * @date
- *   2022-05-24
- * @copyright
- *   Copyright (c) 2022
- */
 // My header files
 #include "../include/Assembler.hpp"
 #include <cmath>
@@ -139,6 +125,12 @@ auto FunctionBuilder::CheckIfReturns() -> void {
         throw Error::AssemblerError{ "Function" + _name + "must contain `ret` instruction" };
 }
 
+auto FunctionBuilder::AddPrint(int32_t source) -> void {
+    if (source >= _registerCount)
+        throw Error::AssemblerError{ "Register index out of range: ", static_cast<int>(source) };
+    _emitter.Emit(VM::Instructions::Opcode::dbgprintreg, source);
+}
+
 auto Assembler::BeginFunction(std::string name, uint16_t registerCount, uint16_t argumentCount, bool doesReturn) -> void {
     if (!_isBuildingAFunction) {
         _builder.NewFunction(name, registerCount, argumentCount, doesReturn);
@@ -171,6 +163,12 @@ auto Assembler::AddCall(std::string function) -> void {
     if (!_isBuildingAFunction)
         throw Error::AssemblerError{ "Can't add an instruction when not in build mode" };
     _builder.AddCall(function);
+}
+
+auto Assembler::AddPrint(int32_t source) -> void {
+    if (!_isBuildingAFunction)
+        throw Error::AssemblerError{ "Can't add an instruction when not in build mode" };
+    _builder.AddPrint(source);
 }
 
 auto Assembler::AddBinary(VM::Instructions::Opcode opcode, uint32_t dest, uint32_t src) -> void {

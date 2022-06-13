@@ -1,18 +1,3 @@
-/**
- * @file
- *   VM.hpp
- * @author
- *   Harutekku @link https://github.com/harutekku @endlink
- * @brief
- *   The core machinery behind the Yun virtual machine
- * @version
- *   0.0.1
- * @date
- *   2022-05-24
- * @copyright
- *   Copyright (c) 2022
- * 
- */
 // My header files
 #include "../include/VM.hpp"
 #include <cstdint>
@@ -723,8 +708,6 @@ auto VM::Run() -> void {
             // Allocate new registers
             _registers.Allocate(symbol.Registers);
             
-            // Copy last `count` registers to a new frame
-            // TODO: Update reference counts
             if (symbol.Arguments != 0)
                 _registers.Copy(symbol.Registers, symbol.Arguments, _heap);
 
@@ -833,6 +816,11 @@ auto VM::Run() -> void {
             arrayPtr->Advance(destRegister.As<Primitives::Reference>(), srcRegister.As<uint32_t>());
             break;
         }
+        case Instructions::Opcode::dbgprintreg: {
+            auto& dest = _registers[destIndex];
+
+            puts(dest.ToString(false).c_str());
+        }
         case Instructions::Opcode::nop:
             break;
         case Instructions::Opcode::hlt:
@@ -843,13 +831,6 @@ auto VM::Run() -> void {
         #pragma endregion
 
         pc += size;
-
-        if (_callStack.Count() == 1) {
-            puts("Registers:");
-            _registers.Print();
-            printf("Flags: %d\n", _flags);
-            putchar('\n');
-        }
 
     } while (!_callStack.IsEmpty());
 }

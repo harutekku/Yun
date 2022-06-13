@@ -93,14 +93,6 @@ class RangeError : public std::exception {
         std::string _message;
 };
 
-class LexerError : public std::exception {
-
-};
-
-class ParserError : public std::exception {
-
-};
-
 }
 
 #endif

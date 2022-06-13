@@ -1,18 +1,3 @@
-/**
- * @file 
- *   Assembler.hpp
- * @author
- *   Harutekku @link https://github.com/harutekku @endlink
- * @brief 
- *   Assembler for the Yun virtual machine
- * @version
- *   0.0.1
- * @date
- *   2022-05-24
- * @copyright
- *   Copyright (c) 2022
- * 
- */
 #ifndef ASSEMBLER_HPP
 #define ASSEMBLER_HPP
 
@@ -30,10 +15,6 @@
 #include "Instructions.hpp"
 #include "Value.hpp"
 
-/**
- * @brief 
- *   Yun::ASM namespace holds classes used by the assembler
- */
 namespace Yun::ASM {
 
 class FunctionUnit {
@@ -71,6 +52,7 @@ class FunctionBuilder {
         auto AddBinary(VM::Instructions::Opcode, uint32_t, uint32_t) -> void;
         auto AddVoid(VM::Instructions::Opcode) -> void;
         auto AddCall(std::string) -> void;
+        auto AddPrint(int32_t) -> void;
 
     public:
         [[nodiscard]] auto Finalize() -> FunctionUnit;
@@ -93,17 +75,8 @@ class FunctionBuilder {
         std::map<uint32_t, std::string> _calls;
 };
 
-/**
- * @brief 
- *   Main assembler class, responsible for code generation
- *   and label patching
- */
 class Assembler {
     public:
-        /**
-         * @brief 
-         *   Default construct a new Assembler object
-         */
         Assembler() = default;
     
     public:
@@ -111,53 +84,15 @@ class Assembler {
         auto EndFunction() -> void;
 
     public:
-        /**
-         * @brief 
-         *   Add a new label to the current file
-         * @param label
-         *   Label name
-         * @throw Error::AssemblerError
-         *   If there was an attempt to redefine label
-         */
         auto AddLabel(std::string) -> void;
 
-        /**
-         * @brief 
-         *   Add jump instruction with label name
-         * @param opcode
-         *   A valid jump instruction
-         * @param label
-         *   A valid label name, that should be patched later
-         * @throws Error::InstructionError
-         *   If the instruction wasn't from jump family
-         */
         auto AddJump(VM::Instructions::Opcode, std::string) -> void;
 
         auto AddCall(std::string) -> void;
 
     public:
-        /**
-         * @brief 
-         *   Add a binary opcode
-         * @param opcode
-         *   A valid instruction that accepts two operands
-         * @param dest
-         *   Destination register
-         * @param src
-         *   Source register
-         * @throws Error::InstructionError
-         *   If the instruction doesn't accept two operands
-         */
         auto AddBinary(VM::Instructions::Opcode, uint32_t, uint32_t) -> void;
 
-        /**
-         * @brief 
-         *   Add a void instruction (i.e. one without any operands)
-         * @param opcode
-         *   A valid instruction without operands
-         * @throws Error::InstructionError
-         *   If instruction has a non-zero number of operands
-         */
         auto AddVoid(VM::Instructions::Opcode) -> void;
 
         template<typename T>
@@ -165,17 +100,10 @@ class Assembler {
             auto index = _constants.FindOrAdd<T>(VM::Primitives::Value(std::forward<T>(value)));
             _builder.AddBinary(VM::Instructions::Opcode::ldconst, destination, index);
         }
+
+        auto AddPrint(int32_t) -> void;
         
     public:
-        /**
-         * @brief 
-         *   Patch the calls and symbol table and emit the ExecutionUnit,
-         *   ready for interpretation
-         * @param name
-         *   A name for the execution unit
-         * @return 
-         *   A valid Instructions::Buffer if patching succeeds
-         */
         [[nodiscard]] auto Patch(std::string) -> VM::ExecutionUnit;
     
     private:

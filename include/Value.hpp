@@ -1,18 +1,3 @@
-/**
- * @file
- *   Value.hpp
- * @author
- *   Harutekku @link https://github.com/harutekku @endlink
- * @brief
- *   Provides a `Value` class, used internaly by Yun virtual machine
- * @version
- *   0.0.1
- * @date
- *   2022-05-24
- * @copyright
- *   Copyright (c) 2022
- * 
- */
 #ifndef PRIMITIVES_HPP
 #define PRIMITIVES_HPP
 
@@ -327,7 +312,7 @@ class Value {
         }
 
     public:
-        [[nodiscard]] auto ToString() const noexcept -> std::string;
+        [[nodiscard]] auto ToString(bool verbose = true) const noexcept -> std::string;
     
     private: // Member values
         union {

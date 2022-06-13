@@ -1,18 +1,3 @@
-/**
- * @file
- *   Instructions.hpp
- * @author
- *   Harutekku @link https://github.com/harutekku @endlink
- * @brief
- *   Instructions used by other classes
- * @version
- *   0.0.1
- * @date
- *   2022-05-24
- * @copyright
- *   Copyright (c) 2022
- * 
- */
 #ifndef INSTRUCTIONS_HPP
 #define INSTRUCTIONS_HPP
 
@@ -71,6 +56,7 @@ enum class Opcode : uint8_t {
     advance,
 
     // Misc
+    dbgprintreg,
     nop,
     hlt
 };
@@ -186,6 +172,7 @@ enum class Opcode : uint8_t {
     case jlt:
     case jle:
     case call:
+    case dbgprintreg:
         return 1;
     case nop:
     case hlt:
@@ -431,6 +418,8 @@ enum class Opcode : uint8_t {
         return "store";
     case advance:
         return "advance";
+    case dbgprintreg:
+        return "dbgprintreg";
     case nop:
         return "nop";
     case hlt:

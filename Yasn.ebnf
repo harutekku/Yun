@@ -1,7 +1,4 @@
-file                = { declaration }
-                    ;
-
-declaration         = function
+file                = { function }
                     ;
 
 function            = functionDeclaration instructionBlock
@@ -10,14 +7,11 @@ function            = functionDeclaration instructionBlock
 functionDeclaration = attributes 'function' ID '()' 
                     ;
     
-instructionBlock    = '{' '\n' { line } retLine '}'
+instructionBlock    = '{' '\n' { line } line '}'
                     ;
 
 (*****************************************************************************)
 line                = instruction [ operand [ ',' operand ] ] '\n'
-                    ;
-
-retLine             = 'ret' '\n'
                     ;
 
 (*****************************************************************************)
@@ -30,16 +24,12 @@ attribute           = 'registers'
                     ;
 
 value               = intValue
-                    | boolValue
                     ;
 
 (*****************************************************************************)
 intValue            = nonzeroDigit { digit }
                     ;
 
-boolValue           = 'true'
-                    | 'false'
-                    ;
 
 nonzeroDigit        = '1' | '2' | '3' | '4' | '5' 
                     | '6' | '7' | '8' | '9' ;

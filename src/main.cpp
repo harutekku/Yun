@@ -1,31 +1,29 @@
-// My header files
-#include "../include/VM.hpp"
-#include "../include/Instructions.hpp"
-#include "../include/Assembler.hpp"
+#include <algorithm>
+#include <cstdio>
+#include <memory>
+#include <exception>
+#include "../include/Lexer.hpp"
 
 auto main(void) -> int try {
-    using namespace Yun::VM::Instructions;
-    using namespace Yun::VM;
-    using namespace Yun::ASM;
-    using enum Yun::VM::Instructions::Opcode;
-    
-    Assembler as{  };
+    std::unique_ptr<FILE, int(*)(FILE*)> file{ fopen("Test.txt", "r"), fclose };
+    fseek(file.get(), 0, SEEK_END);
+    size_t size = ftell(file.get());
 
-    as.BeginFunction("main", 2, 0, false);
-    {
-        as.LoadConstant(0, 16u);
-        as.LoadConstant(1, 1u);
-        as.AddBinary(newarray, 0, 1);
-        as.LoadConstant(0, 2);
-        as.AddVoid(ret);
-    }
-    as.EndFunction();
+    std::string buffer{  };
+    buffer.resize(size);
 
-    auto e = as.Patch("Test");
-    
-    VM v{ std::move(e) };
-    v.Run();
-    
+    rewind(file.get());
+    fread(buffer.data(), 1, size, file.get());
+
+    Yun::Interpreter::Lexer l{ std::move(buffer) };
+    auto& res = l.Scan();
+
+    if (l.HadError())
+        return 1;
+
+    for (const auto& tok : res)
+        std::puts(tok.ToString().c_str());
+
     return 0;
 } catch (std::exception& e) {
     puts(e.what());

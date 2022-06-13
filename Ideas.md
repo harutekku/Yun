@@ -96,11 +96,13 @@
 
 [x] Improve error reporting
 
-[ ] Improve GC - reference counting is relatively easy
+[x] Improve GC - reference counting is relatively easy
 
-[ ] Implement arrays
+[x] Implement arrays
 
-[ ] Implement lexer
+[x] Implement lexer
+
+[ ] Make lexer sensitive to string nuances - labels end with `:`, jumps jump `@`, registers start with `R` etc.
 
 [ ] Implement recursive-descent parser
 

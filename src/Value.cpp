@@ -102,9 +102,9 @@ namespace Yun::VM::Primitives {
     }
 
 
-    [[nodiscard]] auto Value::ToString() const noexcept -> std::string {
+    [[nodiscard]] auto Value::ToString(bool verbose) const noexcept -> std::string {
         using enum Type;
-        std::string retVal{ "(" };
+        std::string retVal{ verbose? "(" : "" };
 
         switch (_type) {
         case Uninit:
@@ -144,9 +144,11 @@ namespace Yun::VM::Primitives {
             retVal.append(_as.ref.ToString());
             break;
         }
-        retVal.append(": ");
-        retVal.append(TypeToString(_type));
-        retVal.append(")");
+        if (verbose) {
+            retVal.append(": ");
+            retVal.append(TypeToString(_type));
+            retVal.append(")");
+        }
         return retVal;
     }
 }

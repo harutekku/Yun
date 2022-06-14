@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iterator>
+#include <list>
 #include <map>
 #include <string>
 
@@ -137,7 +138,7 @@ const static std::map<std::string, MappedValues> Keywords{
     { "load",         { TokenType::Instruction, VM::Instructions::Opcode::load } },
     { "store",        { TokenType::Instruction, VM::Instructions::Opcode::store } },
     { "advance",      { TokenType::Instruction, VM::Instructions::Opcode::advance } },
-    { "dbgprintreg",  { TokenType::Instruction, VM::Instructions::Opcode::dbgprintreg } },
+    { "printreg",     { TokenType::Instruction, VM::Instructions::Opcode::printreg } },
     { "nop",          { TokenType::Instruction, VM::Instructions::Opcode::nop } },
     { "hlt",          { TokenType::Instruction, VM::Instructions::Opcode::hlt } }
 };
@@ -169,11 +170,7 @@ Lexer::Lexer(std::string source)
     return _tokenBuffer;
 }
 
-[[nodiscard]] auto Lexer::HadError() -> bool {
-    return _hadError;
-}
-
-[[nodiscard]] auto Lexer::HasNext() -> bool {
+[[nodiscard]] auto Lexer::HasNext() const -> bool {
     return _current < _src.size();
 }
 
@@ -215,17 +212,10 @@ auto Lexer::Next() -> void {
         break;
     case '\r':
         break;
-    case '$':
-        if (auto ch = NextCharacter(); std::isdigit(ch) || ch == '-')
-            Number();
-        else
-            ReportError("Unexpected characters in immediate operand");
-        break;
-    case '@':
-        // TODO: Implement
-        break;
     default:
-        if (std::isalpha(c))
+        if (std::isdigit(c) || c == '-')
+            Number();
+        else if (std::isalpha(c))
             Identifier();
         else
             ReportError("Unexpected character");
@@ -233,13 +223,13 @@ auto Lexer::Next() -> void {
     }
 }
 
-[[nodiscard]] auto Lexer::Peek() -> char {
+[[nodiscard]] auto Lexer::Peek() const noexcept -> char {
     if (!HasNext())
         return '\0';
     return _src[_current];
 }
 
-[[nodiscard]] auto Lexer::PeekNext() -> char {
+[[nodiscard]] auto Lexer::PeekNext() const noexcept -> char {
     if (_current + 1 >= _src.size())
         return '\0';
     return _src[_current + 1];
@@ -249,7 +239,7 @@ auto Lexer::Next() -> void {
     return _src[_current++];
 }
 
-[[nodiscard]] static auto CountDigits(uint32_t n) -> int {
+[[nodiscard]] static constexpr auto CountDigits(uint32_t n) noexcept -> int {
     int retVal = 0;
     while (n != 0) {
         n /= 10;
@@ -307,15 +297,14 @@ auto Lexer::Number() -> void {
             c = NextCharacter();
     }
 
-    std::string res{ _src.data() + _start + 1, _src.data() + _current };
+    std::string res{ _src.data() + _start, _src.data() + _current };
     try {
-
-    if (isFloat)
-        AddToken(TokenType::FloatLiteral, std::stod(res));
-    else if (isSigned)
-        AddToken(TokenType::SignedLiteral, std::stol(res));
-    else
-        AddToken(TokenType::UnsignedLiteral, std::stoul(res));
+        if (isFloat)
+            AddToken(TokenType::FloatLiteral, std::stod(res));
+        else if (isSigned)
+            AddToken(TokenType::SignedLiteral, std::stol(res));
+        else
+            AddToken(TokenType::UnsignedLiteral, std::stoul(res));
     } catch (std::exception&) {
         ReportError("Invalid literal");
     }
@@ -343,8 +332,8 @@ auto Lexer::Identifier() -> void {
     if (mightBeRegister) {
         AddToken(TokenType::Register);
         return;
-    } else if (auto it = Keywords.find(key); it != Keywords.end()) {
-        if (auto type = it->second.Type; type == TokenType::Instruction)
+    } else if (const auto it = Keywords.find(key); it != Keywords.end()) {
+        if (const auto type = it->second.Type; type == TokenType::Instruction)
             AddToken(it->second.Type, it->second.InstrValue);
         else
             AddToken(it->second.Type);

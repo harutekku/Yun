@@ -14,18 +14,16 @@ class ExecutionUnit {
         ExecutionUnit(std::string, Containers::SymbolTable, Containers::ConstantPool, Containers::InstructionBuffer);
     
     public:
-        [[nodiscard]] auto Name() -> std::string_view;
-        [[nodiscard]] auto StartPC() -> uint32_t*;
-        [[nodiscard]] auto StopPC() -> uint32_t*;
-        [[nodiscard]] auto ConstantLookup(size_t) -> Primitives::Value;
-        [[nodiscard]] auto SymbolLookup(size_t) -> const Containers::Symbol&;
-        [[nodiscard]] auto SymbolLookup(const std::string&) -> const Containers::Symbol&;
+        [[nodiscard]] auto Name() const noexcept -> std::string_view;
+        [[nodiscard]] auto StartPC() const noexcept -> const uint32_t*;
+        [[nodiscard]] auto StopPC() const noexcept -> const uint32_t*;
+        [[nodiscard]] auto ConstantLookup(size_t) const -> Primitives::Value;
+        [[nodiscard]] auto SymbolLookup(size_t) const -> const Containers::Symbol&;
+        [[nodiscard]] auto SymbolLookup(const std::string&) const -> const Containers::Symbol&;
         
     public:
-        auto Disassemble() -> void;
-
-    private:
-        [[nodiscard]] auto DisassembleInstruction(size_t) -> size_t;
+        auto Disassemble() const noexcept -> void;
+        [[nodiscard]] auto DisassembleInstruction(size_t) const noexcept -> size_t;
 
     private:
         std::string                   _name;
@@ -36,11 +34,13 @@ class ExecutionUnit {
 
 class VM final {
     public:
-        VM(ExecutionUnit);
+        VM(ExecutionUnit) noexcept;
     
     public:
         auto Run() -> void;
-        auto PrintRegs() -> void;
+    
+    private:
+        auto ReportError(std::string_view) const -> void;
 
     private:
         ExecutionUnit             _unit;
@@ -48,6 +48,7 @@ class VM final {
         Containers::CallStack     _callStack;
         Containers::ArrayHeap     _heap;
         int32_t                   _flags;
+        bool                      _hadError;
 };
 
 

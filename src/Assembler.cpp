@@ -2,15 +2,16 @@
 #include "../include/Assembler.hpp"
 #include <cmath>
 #include <cstdint>
+#include <map>
 #include <string>
 
 namespace Yun::ASM {
 
-FunctionUnit::FunctionUnit(VM::Containers::Symbol symbol, VM::Emit::Emitter emitter, std::map<uint32_t, std::string> calls)
+FunctionUnit::FunctionUnit(VM::Containers::Symbol symbol, VM::Emit::Emitter emitter, std::map<uint32_t, std::string> calls) noexcept
     :_symbol{ std::move(symbol) }, _emitter{ std::move(emitter) }, _calls{ std::move(calls) } {
 }
 
-[[nodiscard]] auto FunctionUnit::Size() -> size_t {
+[[nodiscard]] auto FunctionUnit::Size() const noexcept -> size_t {
     return _emitter.Count() * 4;
 }
 
@@ -18,7 +19,7 @@ FunctionUnit::FunctionUnit(VM::Containers::Symbol symbol, VM::Emit::Emitter emit
     return _emitter.Serialize(buffer);
 }
 
-[[nodiscard]] auto FunctionUnit::Serialize() -> VM::Containers::InstructionBuffer {
+[[nodiscard]] auto FunctionUnit::Serialize() const -> VM::Containers::InstructionBuffer {
     return _emitter.Serialize();
 }
 
@@ -30,13 +31,16 @@ FunctionUnit::FunctionUnit(VM::Containers::Symbol symbol, VM::Emit::Emitter emit
     return _symbol;
 }
         
-[[nodiscard]] auto FunctionUnit::CallMap() -> std::map<uint32_t, std::string>& {
+[[nodiscard]] auto FunctionUnit::CallMap() const -> const std::map<uint32_t, std::string>& {
     return _calls;
 }
 
 auto FunctionBuilder::NewFunction(std::string name, uint16_t registerCount, uint16_t argumentCount, bool doesReturn) -> void {
-    if (argumentCount > registerCount || (registerCount == 0 && doesReturn))
-        throw Error::AssemblerError{ "Argument count bigger than register count: ", argumentCount, registerCount };
+    if (argumentCount > registerCount)
+        throw Error::AssemblerError{ "Not enough registers for arguments: ",  argumentCount, registerCount };
+    else if (registerCount == 0 && doesReturn)
+        throw Error::AssemblerError{ "Not enough registers for storing a return value: ", 1, 0 };
+
     _name          = std::move(name);
     _registerCount = registerCount;
     _argumentCount = argumentCount;
@@ -49,7 +53,7 @@ auto FunctionBuilder::NewFunction(std::string name, uint16_t registerCount, uint
 
 auto FunctionBuilder::AddLabel(std::string label) -> void {
     // First try adding a label to the map
-    auto [it, success] = _labels.try_emplace(label, _emitter.Count() * 4);
+    const auto [it, success] = _labels.try_emplace(label, _emitter.Count() * 4);
 
     // If failed, report a redefinition error
     if (!success)
@@ -111,15 +115,15 @@ auto FunctionBuilder::Finalize() -> FunctionUnit {
     VM::Containers::Symbol s{ std::move(_name), _registerCount, _argumentCount, 0, static_cast<uint32_t>(_emitter.Count() * 4), _doesReturn };
 
 
-    return { s, _emitter, _calls };
+    return { std::move(s), _emitter, _calls };
 }
 
-[[nodiscard]] auto FunctionBuilder::FunctionName() const -> const std::string& {
+[[nodiscard]] auto FunctionBuilder::FunctionName() const noexcept -> const std::string& {
     return _name;
 }
 
-auto FunctionBuilder::CheckIfReturns() -> void {
-    auto last = _emitter.Count();
+auto FunctionBuilder::CheckIfReturns() const -> void {
+    const auto last = _emitter.Count();
 
     if (last == 0 || _emitter.At(last - 1).Opcode() != VM::Instructions::Opcode::ret)
         throw Error::AssemblerError{ "Function" + _name + "must contain `ret` instruction" };
@@ -189,15 +193,20 @@ auto Assembler::AddVoid(VM::Instructions::Opcode opcode) -> void {
 
 [[nodiscard]] auto Assembler::Patch(std::string name) -> VM::ExecutionUnit {
     size_t codeSegmentSize = 0;
+    std::map<std::string, bool> registeredSymbols{  };
     
     // First, calculate the code segment size
     for (auto& function : _functions) {
-        auto symbol = std::move(function.Symbol());
+        auto& symbol = function.Symbol();
 
         // Fill the symbol table with declared functions
         symbol.Start = codeSegmentSize;
         symbol.End   = codeSegmentSize + function.Size();
 
+        if (auto it = registeredSymbols.find(symbol.Name); it != std::end(registeredSymbols))
+            throw Error::AssemblerError{ "Redefinition of function: " + symbol.Name };
+        else
+            registeredSymbols[symbol.Name] = true;
         _symbolTable.Add(symbol);
 
         codeSegmentSize += function.Size();
@@ -212,11 +221,20 @@ auto Assembler::AddVoid(VM::Instructions::Opcode opcode) -> void {
         for (const auto& [relOffst, string] : callMap) {
             const auto& symbol = _symbolTable.FindByName(string);
 
+            CheckCall(function.Symbol(), symbol);
+
             function.At(relOffst).PatchOffset(symbol.Start);
         }
         index += function.Serialize(buffer.begin() + index);
     }
     return { std::move(name), std::move(_symbolTable), std::move(_constants), std::move(buffer) };
+}
+
+auto Assembler::CheckCall(const VM::Containers::Symbol& caller, const VM::Containers::Symbol& callee) const -> void {
+    if (caller.Registers == 0 && callee.DoesReturn)
+        throw Error::AssemblerError{ "Not enough registers to save a return value" };
+    else if (caller.Registers < callee.Arguments)
+        throw Error::AssemblerError{ "Caller doesn't have enough registers to pass arguments required by callee" };
 }
 
 }

@@ -56,12 +56,12 @@ enum class Opcode : uint8_t {
     advance,
 
     // Misc
-    dbgprintreg,
+    printreg,
     nop,
     hlt
 };
 
-[[nodiscard]] constexpr auto OpcodeCount(Opcode op) -> int {
+[[nodiscard]] constexpr auto OpcodeCount(Opcode op) noexcept -> int {
     switch (op) {
     case Opcode::i32add:
     case Opcode::i32sub:
@@ -171,7 +171,7 @@ enum class Opcode : uint8_t {
     case Opcode::jlt:
     case Opcode::jle:
     case Opcode::call:
-    case Opcode::dbgprintreg:
+    case Opcode::printreg:
         return 1;
     case Opcode::nop:
     case Opcode::hlt:
@@ -415,8 +415,8 @@ enum class Opcode : uint8_t {
         return "store";
     case Opcode::advance:
         return "advance";
-    case Opcode::dbgprintreg:
-        return "dbgprintreg";
+    case Opcode::printreg:
+        return "printreg";
     case Opcode::nop:
         return "nop";
     case Opcode::hlt:

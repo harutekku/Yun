@@ -1,7 +1,5 @@
 #include "../include/Containers.hpp"
 #include <bit>
-#include <bits/utility.h>
-#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <exception>
@@ -12,12 +10,8 @@
 
 namespace Yun::VM::Containers {
 
-RegisterArray::RegisterArray(size_t count)
+RegisterArray::RegisterArray(size_t count) noexcept
     :_index{ 0 }, _registers(count) {
-}
-
-[[nodiscard]] auto RegisterArray::At(size_t index) -> Primitives::Value& {
-    return _registers[index];
 }
 
 auto RegisterArray::Allocate(size_t count) -> void {
@@ -26,58 +20,54 @@ auto RegisterArray::Allocate(size_t count) -> void {
     _index += count;
 }
 
-auto RegisterArray::Deallocate(size_t count, ArrayHeap& heap) -> void {
+auto RegisterArray::Deallocate(size_t count, ArrayHeap& heap) noexcept -> void {
     for (size_t i = _index - count; i != _index; ++i)
-        if (_registers[i].Is() == Primitives::Type::Reference)
+        if (_registers[i].Typeof() == Primitives::Type::Reference)
             heap.Notify(_registers[i].As<Primitives::Reference>().HeapID, false);
     _index -= count;
 }
 
-auto RegisterArray::Copy(std::size_t base, std::size_t count, ArrayHeap& heap) -> void {
+auto RegisterArray::Copy(std::size_t base, std::size_t count, ArrayHeap& heap) noexcept -> void {
     for (size_t i = 0; i != count; ++i)
-        if (auto ref = _registers.at(_index - base + i) = _registers.at(_index - base - count + i); ref.Is() == Primitives::Type::Reference)
+        if (const auto& ref = _registers[_index - base + i] = _registers[_index - base - count + i]; ref.Typeof() == Primitives::Type::Reference)
             heap.Notify(ref.As<Primitives::Reference>().HeapID, true);
 }
 
-auto RegisterArray::SaveReturnValue(std::size_t currentFrameCount, ArrayHeap& heap) -> void {
-    auto& oldLast = _registers.at(_index - currentFrameCount - 1);
-    auto& newFirst = _registers.at(_index - currentFrameCount);
-    if (oldLast.Is() == Primitives::Type::Reference)
+auto RegisterArray::SaveReturnValue(std::size_t currentFrameCount, ArrayHeap& heap) noexcept -> void {
+    auto& oldLast = _registers[_index - currentFrameCount - 1];
+    const auto& newFirst = _registers[_index - currentFrameCount];
+    if (oldLast.Typeof() == Primitives::Type::Reference)
         heap.Notify(oldLast.As<Primitives::Reference>().HeapID, false);
     oldLast = newFirst;
-    if (oldLast.Is() == Primitives::Type::Reference)
+    if (oldLast.Typeof() == Primitives::Type::Reference)
         heap.Notify(oldLast.As<Primitives::Reference>().HeapID, true);
 }
 
-[[nodiscard]] auto RegisterArray::operator[](size_t index) -> Primitives::Value& {
-    return _registers[index];
-}
-
-auto RegisterArray::Print() -> void {
+auto RegisterArray::Print() const -> void {
     for (size_t i = 0; i != _index; ++i)
         printf("  0x%zx -> %s\n", i, _registers[i].ToString().data());
 }
 
-[[nodiscard]] auto ConstantPool::Read(size_t index) -> Primitives::Value {
+[[nodiscard]] auto ConstantPool::Read(size_t index) const -> Primitives::Value {
     return _constants.at(index);
 }
 
-[[nodiscard]] auto ConstantPool::Has(size_t index) -> bool {
+[[nodiscard]] auto ConstantPool::Has(size_t index) const noexcept -> bool {
     return index < _constants.size();
 }
 
-auto ConstantPool::Print() -> void {
+auto ConstantPool::Print() const noexcept -> void {
     for (size_t i = 0; i != _constants.size(); ++i)
         printf("  $0x%zx -> %s\n", i, _constants[i].ToString().data());
 }
 
 [[nodiscard]] auto ConstantPool::Add(Primitives::Value value) -> size_t {
-    auto oldSize = _constants.size();
+    const auto oldSize = _constants.size();
     _constants.push_back(value);
     return oldSize;
 }
 
-InstructionBuffer::InstructionBuffer(size_t size) {
+InstructionBuffer::InstructionBuffer(size_t size) noexcept {
     _data = std::make_unique<uint32_t[]>(size);
     _last = &_data[size];
 }
@@ -86,7 +76,14 @@ InstructionBuffer::InstructionBuffer(size_t size) {
     return &_data[0];    
 }
 
+[[nodiscard]] auto InstructionBuffer::begin() const noexcept -> const uint32_t* {
+    return &_data[0];    
+}
+
 [[nodiscard]] auto InstructionBuffer::end() noexcept -> uint32_t* {
+    return _last;
+}
+[[nodiscard]] auto InstructionBuffer::end() const noexcept -> const uint32_t* {
     return _last;
 }
 
@@ -98,7 +95,7 @@ InstructionBuffer::InstructionBuffer(size_t size) {
     return buffer.end();
 }
 
-[[nodiscard]] auto Symbol::ToString() -> std::string {
+[[nodiscard]] auto Symbol::ToString() const -> std::string {
     std::string retVal{ std::string("@0x") + std::to_string(Start) + std::string(" -> ") };
     retVal.append(Name);
     retVal.append("\n    Registers: ");
@@ -125,39 +122,38 @@ auto Symbol::PrettyFunctionSignature() const -> std::string {
     return retVal;
 }
 
-[[nodiscard]] auto SymbolTable::FindByName(const std::string_view name) -> const Symbol& {
+[[nodiscard]] auto SymbolTable::FindByName(const std::string_view name) const -> const Symbol& {
     for (size_t i = 0; i != _symbols.size(); ++i)
         if (_symbols[i].Name == name)
             return _symbols[i];
     throw Error::VMError{ "No such symbol exists in symbol table" };
 }
 
-[[nodiscard]] auto SymbolTable::FindByLocation(uint32_t location) -> const Symbol& {
+[[nodiscard]] auto SymbolTable::FindByLocation(uint32_t location) const -> const Symbol& {
     for (size_t i = 0; i != _symbols.size(); ++i)
         if (_symbols[i].Start == location)
             return _symbols[i];
     throw Error::VMError{ "No such symbol exists in symbol table" };
 }
 
-[[nodiscard]] auto SymbolTable::At(size_t index) -> const Symbol& {
+[[nodiscard]] auto SymbolTable::At(size_t index) const -> const Symbol& {
     return _symbols.at(index);
 }
 
-[[nodiscard]] auto SymbolTable::Count() -> size_t {
+[[nodiscard]] auto SymbolTable::Count() const noexcept -> size_t {
     return _symbols.size();
 }
 
-auto SymbolTable::Print() -> void {
+auto SymbolTable::Print() const -> void {
     for (size_t i = 0; i != _symbols.size(); ++i)
         printf("  %s", _symbols[i].ToString().data());
 }
     
 auto SymbolTable::Add(Symbol symbol) -> void {
-    _size += symbol.Name.size() + sizeof(symbol.Start) + sizeof(symbol.End) + sizeof(symbol.Registers) + sizeof(symbol.Arguments) + sizeof(symbol.DoesReturn); 
     _symbols.emplace_back(std::move(symbol));
 }
 
-CallStack::CallStack(size_t count)
+CallStack::CallStack(size_t count) noexcept 
     :_count{ 0 }, _relativeOffset{ 0 }, _frames(count) {
 }
 
@@ -172,22 +168,8 @@ auto CallStack::Push(Frame frame) -> void {
     return returnValue;
 }
 
-[[nodiscard]] auto CallStack::RelativeOffset() -> size_t {
-    return _relativeOffset;
-}
-
-[[nodiscard]] auto CallStack::IsEmpty() -> bool {
-    return _count == 0;
-}
-
-#pragma region Arrays
-
-Array::Array(Primitives::Type type, size_t count)
+Array::Array(Primitives::Type type, size_t count) noexcept
     :_elementType{ type }, _count{ count }, _elements{ std::make_unique<uint64_t[]>(count) } {
-}
-
-[[nodiscard]] auto Array::Count() -> size_t {
-    return _count;
 }
 
 [[nodiscard]] auto Array::Load(size_t index) -> Primitives::Value {
@@ -230,11 +212,11 @@ ArrayHeap::ArrayHeap(size_t initialSize)
     if (id == _heapArrays.capacity())
         _heapArrays.resize(2 * id);
     
-    _heapArrays[id] = { .Id = id, .RefCount = 1, .Pointer = std::make_unique<Array>(static_cast<Primitives::Type>(type), size) }; 
+    _heapArrays[id] = HeapRecord{ id, 1, std::make_unique<Array>(static_cast<Primitives::Type>(type), size) }; 
     return { id, 0 };
 }
 
-auto ArrayHeap::Notify(uint32_t id, bool refAddElseSub) -> void {
+auto ArrayHeap::Notify(uint32_t id, bool refAddElseSub) noexcept -> void {
     if (refAddElseSub)
         ++_heapArrays[id].RefCount;
     else
@@ -246,10 +228,9 @@ auto ArrayHeap::Notify(uint32_t id, bool refAddElseSub) -> void {
     }
 }
 
-[[nodiscard]] auto ArrayHeap::GetArray(uint32_t id) -> Array* {
+[[nodiscard]] auto ArrayHeap::GetArray(uint32_t id) noexcept -> Array* {
     return _heapArrays[id].Pointer.get();
 }
 
-#pragma endregion
     
 }

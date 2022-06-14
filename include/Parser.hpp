@@ -21,16 +21,18 @@ namespace Yun::Interpreter {
 
     class Parser {
         public:
-            Parser(std::vector<Token>);
+            Parser(std::vector<Token>) noexcept;
         
         public:
-            [[nodiscard]] auto HadError() -> bool;
+            [[nodiscard]] constexpr auto HadError() const noexcept -> bool {
+                return _hadError;
+            }
             [[nodiscard]] auto Parse() -> VM::ExecutionUnit;
         
         private:
-            [[nodiscard]] auto Next() -> Token&;
-            [[nodiscard]] auto NextPrintable() -> Token&;
-            [[nodiscard]] auto HasNext() -> bool;
+            [[nodiscard]] auto Next() noexcept -> Token&;
+            [[nodiscard]] auto NextPrintable() noexcept -> Token&;
+            [[nodiscard]] auto HasNext() const noexcept -> bool;
             auto Putback(Token) -> void;
 
             auto Function() -> void;
@@ -38,8 +40,6 @@ namespace Yun::Interpreter {
             auto Attributes() -> void;
             auto Block() -> void;
             auto Line() -> void;
-            auto Value() -> void;
-            auto Operand() -> void;
 
         private:
             auto ReportError(std::string_view) -> void;

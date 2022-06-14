@@ -1,11 +1,6 @@
 #ifndef CONTAINERS_HPP
 #define CONTAINERS_HPP
 
-#include <map>
-#include <string>
-#include <vector>
-#include <cstddef>
-#include <stack>
 #include <memory>
 #include <queue>
 #include "Value.hpp"
@@ -21,19 +16,26 @@ class ArrayHeap;
 
 class RegisterArray {
     public:
-        RegisterArray(size_t count = 1024);
+        RegisterArray(size_t count = 1024) noexcept;
 
     public:
-        [[nodiscard]] auto At(std::size_t) -> Primitives::Value&;
         auto Allocate(std::size_t) -> void;
-        auto Deallocate(std::size_t, ArrayHeap&) -> void;
-        auto Copy(std::size_t, std::size_t, ArrayHeap&) -> void;
-        auto SaveReturnValue(std::size_t, ArrayHeap&) -> void;
+        auto Deallocate(std::size_t, ArrayHeap&) noexcept -> void;
+        auto Copy(std::size_t, std::size_t, ArrayHeap&) noexcept -> void;
+        auto SaveReturnValue(std::size_t, ArrayHeap&) noexcept -> void;
 
-        [[nodiscard]] auto operator[](size_t index) -> Primitives::Value&;
+        [[nodiscard]] 
+        #if __has_cpp_attribute(__cpp_lib_constexpr_vector)
+        constexpr
+        #else
+        inline
+        #endif
+        auto operator[](size_t index) noexcept -> Primitives::Value& {
+            return _registers[index];
+        }
 
     public:
-        auto Print() -> void;
+        auto Print() const -> void;
 
     private:
         std::size_t                    _index;
@@ -45,11 +47,11 @@ class ConstantPool {
         ConstantPool() = default;
     
     public:
-        [[nodiscard]] auto Read(size_t) -> Primitives::Value;
-        [[nodiscard]] auto Has(size_t) -> bool;
+        [[nodiscard]] auto Read(size_t) const -> Primitives::Value;
+        [[nodiscard]] auto Has(size_t) const noexcept -> bool;
 
     public:
-        auto Print() -> void;
+        auto Print() const noexcept -> void;
 
     private:
         friend ASM::Assembler;
@@ -58,23 +60,24 @@ class ConstantPool {
         template<typename T>
         [[nodiscard]] auto FindOrAdd(Primitives::Value value) -> size_t {
             for (size_t i = 0; i != _constants.size(); ++i)
-                if (_constants[i].Is() == value.Is() && _constants[i].As<T>() == value.As<T>())
+                if (_constants[i].Typeof() == value.Typeof() && _constants[i].As<T>() == value.As<T>())
                     return i;
             return Add(value);
         }
 
     private:
         std::vector<Primitives::Value> _constants;
-
 };
 
 class InstructionBuffer {
     public:
-        InstructionBuffer(size_t data);
+        InstructionBuffer(size_t data) noexcept;
 
     public:
         [[nodiscard]] auto begin() noexcept -> uint32_t*;
         [[nodiscard]] auto end() noexcept -> uint32_t*;
+        [[nodiscard]] auto begin() const noexcept -> const uint32_t*;
+        [[nodiscard]] auto end() const noexcept -> const uint32_t*;
     
     private:
         std::unique_ptr<std::uint32_t[]> _data;
@@ -82,12 +85,11 @@ class InstructionBuffer {
 };
 
 [[nodiscard]] auto begin(InstructionBuffer& buffer) noexcept -> uint32_t*;
-
 [[nodiscard]] auto end(InstructionBuffer& buffer) noexcept -> uint32_t*;
 
 class Symbol {
     public:
-        [[nodiscard]] auto ToString() -> std::string;
+        [[nodiscard]] auto ToString() const -> std::string;
         auto PrettyFunctionSignature() const -> std::string;
 
     public:
@@ -101,23 +103,22 @@ class Symbol {
 
 class SymbolTable {
     public:
-        SymbolTable() = default;
+        SymbolTable() noexcept = default;
 
     public:
-        [[nodiscard]] auto FindByName(const std::string_view) -> const Symbol&;
-        [[nodiscard]] auto FindByLocation(uint32_t) -> const Symbol&;
-        [[nodiscard]] auto At(size_t) -> const Symbol&;
-        [[nodiscard]] auto Count() -> size_t;
+        [[nodiscard]] auto FindByName(const std::string_view) const -> const Symbol&;
+        [[nodiscard]] auto FindByLocation(uint32_t) const -> const Symbol&;
+        [[nodiscard]] auto At(size_t) const -> const Symbol&;
+        [[nodiscard]] auto Count() const noexcept -> size_t;
     
     public:
-        auto Print() -> void;
+        auto Print() const -> void;
 
     private:
         friend class ASM::Assembler;
         auto Add(Symbol) -> void;
 
     private:
-        std::size_t         _size;
         std::vector<Symbol> _symbols;
 };
 
@@ -140,20 +141,24 @@ class Frame {
 
 class CallStack {
     public:
-        CallStack(size_t count = 1024);
+        CallStack(size_t count = 1024) noexcept;
 
     public:
         auto Push(Frame) -> void;
         [[nodiscard]] auto Pop() -> Frame;
-        [[nodiscard]] constexpr auto Count() -> size_t {
+        [[nodiscard]] constexpr auto Count() const noexcept -> size_t {
             return _count;
         }
 
     public:
-        [[nodiscard]] auto RelativeOffset() -> size_t;
+        [[nodiscard]] constexpr auto RelativeOffset() const noexcept -> size_t {
+            return _relativeOffset;
+        }
 
     public:
-        [[nodiscard]] auto IsEmpty() -> bool;
+        [[nodiscard]] constexpr auto IsEmpty() const noexcept -> bool {
+            return _count == 0;
+        }
     
     private:
         size_t             _count;
@@ -164,11 +169,12 @@ class CallStack {
 class Array {
     using Value = Primitives::Value;
     public:
-        Array(Primitives::Type, size_t);
-        ~Array() = default;
+        Array(Primitives::Type, size_t) noexcept;
 
     public:
-        [[nodiscard]] auto Count() -> size_t;
+        [[nodiscard]] constexpr auto Count() const noexcept -> size_t {
+            return _count;
+        }
         [[nodiscard]] auto Load(size_t) -> Primitives::Value;
         auto Store(size_t, Primitives::Value) -> void;
         auto Advance(Primitives::Reference&, uint32_t) -> void;
@@ -191,8 +197,8 @@ class ArrayHeap {
 
     public:
         [[nodiscard]] auto NewArray(uint32_t, uint32_t) -> Primitives::Reference;
-        auto Notify(uint32_t, bool) -> void;
-        [[nodiscard]] auto GetArray(uint32_t) -> Array*;
+        auto Notify(uint32_t, bool) noexcept -> void;
+        [[nodiscard]] auto GetArray(uint32_t) noexcept -> Array*;
 
     private:
         size_t                  _index;

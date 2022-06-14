@@ -37,7 +37,7 @@ namespace Yun::Interpreter {
         EndOfFile
     };
 
-    [[nodiscard]] constexpr auto TokenTypeToString(TokenType type) -> std::string_view {
+    [[nodiscard]] constexpr auto TokenTypeToString(TokenType type) noexcept -> std::string_view {
         switch (type) {
         case TokenType::LeftParen:
             return "LeftParen";
@@ -92,10 +92,10 @@ namespace Yun::Interpreter {
 
     class Token {
         public:
-            Token() = default;
+            Token() noexcept = default;
 
             template<typename T>
-            Token(TokenType type, std::string_view lexeme, T value, uint32_t line)
+            Token(TokenType type, std::string_view lexeme, T value, uint32_t line) noexcept
                 :Type{ type }, Lexeme{ lexeme }, Line{ line } {
                 if constexpr (std::is_same_v<T, int64_t>)
                     SignedLiteral = value;
@@ -131,15 +131,17 @@ namespace Yun::Interpreter {
 
         public:
             [[nodiscard]] auto Scan() -> std::vector<Token>&;
-            [[nodiscard]] auto HadError() -> bool;
+            [[nodiscard]] constexpr auto HadError() const noexcept -> bool {
+                return _hadError;
+            }
 
         private:
 
-            [[nodiscard]] auto HasNext() -> bool;
+            [[nodiscard]] auto HasNext() const -> bool;
         
             auto Next() -> void;
-            [[nodiscard]] auto Peek() -> char;
-            [[nodiscard]] auto PeekNext() -> char;
+            [[nodiscard]] auto Peek() const noexcept -> char;
+            [[nodiscard]] auto PeekNext() const noexcept -> char;
             [[nodiscard]] auto NextCharacter() -> char;
 
             template<typename T = uint64_t>
@@ -147,7 +149,7 @@ namespace Yun::Interpreter {
                 std::string_view lexeme{ _src.c_str() + _start, _current - _start };
                 _tokenBuffer.push_back({ type, lexeme, literal, _line });
             }
-            auto ReportError([[maybe_unused]] std::string_view) -> void;
+            auto ReportError(std::string_view) -> void;
 
             auto Number() -> void;
             auto Identifier() -> void;

@@ -1,0 +1,14 @@
+[registers=2, parameters=2, returns=true]
+function sum() {
+    u64add R0, R1
+    ret
+}
+
+[registers=2]
+function main() {
+    ldconst R0, 60
+    ldconst R1, 9
+    call sum
+    printreg R1
+    ret
+}

@@ -19,19 +19,19 @@ namespace Yun::ASM {
 
 class FunctionUnit {
     public:
-        FunctionUnit(VM::Containers::Symbol, VM::Emit::Emitter, std::map<uint32_t, std::string> calls);
+        FunctionUnit(VM::Containers::Symbol, VM::Emit::Emitter, std::map<uint32_t, std::string> calls) noexcept;
     
     public:
-        [[nodiscard]] auto Size() -> size_t;
+        [[nodiscard]] auto Size() const noexcept -> size_t;
 
-        auto Serialize() -> VM::Containers::InstructionBuffer;
+        auto Serialize() const -> VM::Containers::InstructionBuffer;
         [[nodiscard]] auto Serialize(uint32_t*) -> size_t;
 
         [[nodiscard]] auto At(size_t) -> VM::Emit::Instruction&;
 
         [[nodiscard]] auto Symbol() -> VM::Containers::Symbol&;
         
-        [[nodiscard]] auto CallMap() -> std::map<uint32_t, std::string>&;
+        [[nodiscard]] auto CallMap() const -> const std::map<uint32_t, std::string>&;
     
     private:
         VM::Containers::Symbol            _symbol;
@@ -58,10 +58,10 @@ class FunctionBuilder {
         [[nodiscard]] auto Finalize() -> FunctionUnit;
 
     public:
-        [[nodiscard]] auto FunctionName() const -> const std::string&;
+        [[nodiscard]] auto FunctionName() const noexcept -> const std::string&;
     
     private:
-        auto CheckIfReturns() -> void;
+        auto CheckIfReturns() const -> void;
 
     private:
         std::string                     _name;
@@ -77,7 +77,7 @@ class FunctionBuilder {
 
 class Assembler {
     public:
-        Assembler() = default;
+        Assembler() noexcept = default;
     
     public:
         auto BeginFunction(std::string, uint16_t, uint16_t, bool) -> void;
@@ -105,6 +105,9 @@ class Assembler {
         
     public:
         [[nodiscard]] auto Patch(std::string) -> VM::ExecutionUnit;
+    
+    private:
+        auto CheckCall(const VM::Containers::Symbol&, const VM::Containers::Symbol&) const -> void;
     
     private:
         VM::Containers::SymbolTable       _symbolTable;

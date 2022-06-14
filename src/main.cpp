@@ -30,12 +30,9 @@ auto main(void) -> int try {
     Yun::Interpreter::Parser p{ std::move(res) };
     auto e = p.Parse();
 
-    e.Disassemble();
-    
     Yun::VM::VM v{ std::move(e) };
 
     v.Run();
-
     return 0;
 } catch (Yun::Error::ParseError&) {
 } catch (std::exception& e) {

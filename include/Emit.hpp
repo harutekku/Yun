@@ -33,15 +33,15 @@ class Instruction {
         }
 
     public:
-        auto Serialize(uint32_t*) -> void;
+        auto Serialize(uint32_t*) const noexcept -> void;
 
-        [[nodiscard]] constexpr auto Opcode() -> Instructions::Opcode {
+        [[nodiscard]] constexpr auto Opcode() const noexcept -> Instructions::Opcode {
             return _opcode;
         }
-        [[nodiscard]] constexpr auto Destination() -> int32_t {
+        [[nodiscard]] constexpr auto Destination() const noexcept -> int32_t {
             return _dest;
         }
-        [[nodiscard]] constexpr auto Source() -> int32_t {
+        [[nodiscard]] constexpr auto Source() const noexcept -> int32_t {
             return _src;
         }
 
@@ -70,12 +70,13 @@ class Emitter {
 
     public:
         [[nodiscard]] auto At(size_t) -> Instruction&;
+        [[nodiscard]] auto At(size_t) const -> const Instruction&;
 
-        [[nodiscard]] auto Count() noexcept -> size_t;
+        [[nodiscard]] auto Count() const noexcept -> size_t;
 
-        auto Serialize() -> Containers::InstructionBuffer;
+        auto Serialize() const -> Containers::InstructionBuffer;
 
-        [[nodiscard]] auto Serialize(uint32_t*) -> size_t;
+        [[nodiscard]] auto Serialize(uint32_t*) const -> size_t;
 
         auto Clear() -> void;
 

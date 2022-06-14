@@ -1,32 +1,29 @@
 #include "../include/Parser.hpp"
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <iterator>
 #include <math.h>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace Yun::Interpreter {
 
-Parser::Parser(std::vector<Token> tokens)
+Parser::Parser(std::vector<Token> tokens) noexcept
     :_assembler{  },     _tokens{ std::move(tokens) }, _current{ 0 },
      _hadError{ false }, _buffer{  },                  _isFull{ false },
      _state{  } {
 }
 
-[[nodiscard]] auto Parser::HadError() -> bool {
-    return _hadError;
-}
-
 auto Parser::Parse() -> VM::ExecutionUnit {
-    while (HasNext()) {
+    while (HasNext())
         Function();
-    }
     return _assembler.Patch("Main");
 }
 
-[[nodiscard]] auto Parser::Next() -> Token& {
+[[nodiscard]] auto Parser::Next() noexcept -> Token& {
     if (_isFull) {
         _isFull = false;
         return _buffer;
@@ -34,14 +31,14 @@ auto Parser::Parse() -> VM::ExecutionUnit {
     return _tokens[_current++];
 }
 
-[[nodiscard]] auto Parser::NextPrintable() -> Token& {
+[[nodiscard]] auto Parser::NextPrintable() noexcept -> Token& {
     auto& t = Next();
     while (t.Type == TokenType::Newline)
         t = Next();
     return t;
 }
 
-[[nodiscard]] auto Parser::HasNext() -> bool {
+[[nodiscard]] auto Parser::HasNext() const noexcept -> bool {
     return (_current < _tokens.size() && _tokens[_current].Type != TokenType::EndOfFile) || 
            (_isFull && _buffer.Type != TokenType::EndOfFile);
 }
@@ -51,7 +48,7 @@ auto Parser::Putback(Token token) -> void {
         _buffer = token;
         _isFull = true;
     } else
-        throw std::runtime_error{ "[Parser:Internal] Buffer is full" };
+        ReportError("[Parser:Internals] Buffer was full");
 }
 
 auto Parser::Function() -> void {
@@ -187,14 +184,14 @@ auto Parser::Line() -> void {
         } else if (t.InstrLiteral == VM::Instructions::Opcode::call) {
             if (destination.Type != TokenType::Id)
                 ReportError("Token type mismatch: expected 'ID'");
-            _assembler.AddCall(t.Lexeme);
+            _assembler.AddCall(destination.Lexeme);
         } else if (destination.Type == TokenType::Register) {
             _assembler.AddUnary(t.InstrLiteral, std::stoul(destination.Lexeme.c_str() + 1));
         } else
             ReportError("Operand mismatch");
     } else if (operands == 2) {
 
-        auto& destination = Next();
+        const auto& destination = Next();
 
         if (destination.Type != TokenType::Register)
             ReportError("Expected register");
@@ -204,7 +201,7 @@ auto Parser::Line() -> void {
         if (Next().Type != TokenType::Comma)
             ReportError("Expected comma");
         
-        auto& source = Next();
+        const auto& source = Next();
 
         if (VM::Instructions::Opcode::ldconst == t.InstrLiteral) {
             if (source.Type == TokenType::FloatLiteral)
@@ -229,7 +226,9 @@ auto Parser::Line() -> void {
 
 auto Parser::ReportError(std::string_view message) -> void {
     puts(message.data());
-    throw Error::ParseError{  };
+    // TODO: Maybe sync the parser if an error occurs
+    // For now, let's just abort
+    exit(EXIT_FAILURE);
 }
 
 }

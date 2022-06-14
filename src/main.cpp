@@ -16,6 +16,9 @@
 
     rewind(file.get());
     fread(buffer.data(), 1, size, file.get());
+
+    buffer.erase(buffer.find_last_not_of("\n") + 1);
+
     return buffer;
 }
 

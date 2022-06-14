@@ -143,6 +143,7 @@ namespace Yun::Interpreter {
             [[nodiscard]] auto Peek() const noexcept -> char;
             [[nodiscard]] auto PeekNext() const noexcept -> char;
             [[nodiscard]] auto NextCharacter() -> char;
+            auto TrimTrailingNewlines() noexcept -> void;
 
             template<typename T = uint64_t>
             auto AddToken(TokenType type, T literal = T{  }) -> void {

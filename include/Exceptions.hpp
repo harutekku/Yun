@@ -11,7 +11,7 @@
 
 namespace Yun::VM::Primitives {
     enum class Type : uint8_t;
-}
+};
 
 namespace Yun::Error {
 

@@ -166,6 +166,7 @@ Lexer::Lexer(std::string source)
         _start = _current;
         Next();
     }
+    TrimTrailingNewlines();   
     _tokenBuffer.push_back({ TokenType::EndOfFile, _line });
     return _tokenBuffer;
 }
@@ -237,6 +238,15 @@ auto Lexer::Next() -> void {
 
 [[nodiscard]] auto Lexer::NextCharacter() -> char {
     return _src[_current++];
+}
+
+auto Lexer::TrimTrailingNewlines() noexcept -> void {
+    int64_t lastNewline = _tokenBuffer.size() - 1;
+
+    for (; lastNewline > 0 && _tokenBuffer[lastNewline].Type == TokenType::Newline; --lastNewline);
+    ++lastNewline;
+
+    _tokenBuffer.erase(std::begin(_tokenBuffer) + lastNewline, std::end(_tokenBuffer));
 }
 
 [[nodiscard]] static constexpr auto CountDigits(uint32_t n) noexcept -> int {

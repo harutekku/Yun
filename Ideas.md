@@ -102,8 +102,10 @@
 
 [x] Implement lexer
 
-[ ] Make lexer sensitive to string nuances - labels end with `:`, jumps jump `@`, registers start with `R` etc.
+[x] Add instruction literals to Token 
 
-[ ] Implement recursive-descent parser
+[x] Make lexer sensitive to string nuances - labels end with `:`, jumps jump `@`, registers start with `R` etc. - add this as parser symbols
+
+[x] Implement recursive-descent parser
 
 [ ] Go inna woods

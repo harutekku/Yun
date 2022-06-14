@@ -52,7 +52,7 @@ class FunctionBuilder {
         auto AddBinary(VM::Instructions::Opcode, uint32_t, uint32_t) -> void;
         auto AddVoid(VM::Instructions::Opcode) -> void;
         auto AddCall(std::string) -> void;
-        auto AddPrint(int32_t) -> void;
+        auto AddUnary(VM::Instructions::Opcode, int32_t) -> void;
 
     public:
         [[nodiscard]] auto Finalize() -> FunctionUnit;
@@ -101,7 +101,7 @@ class Assembler {
             _builder.AddBinary(VM::Instructions::Opcode::ldconst, destination, index);
         }
 
-        auto AddPrint(int32_t) -> void;
+        auto AddUnary(VM::Instructions::Opcode, int32_t) -> void;
         
     public:
         [[nodiscard]] auto Patch(std::string) -> VM::ExecutionUnit;

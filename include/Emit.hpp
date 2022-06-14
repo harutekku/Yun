@@ -18,7 +18,7 @@ class Instruction {
         constexpr Instruction(Instructions::Opcode opcode, uint32_t dest, uint32_t src)
             :_opcode{ opcode }, _dest{ static_cast<int32_t>(dest) }, _src{ static_cast<int32_t>(src) } {
             if (auto res = Instructions::OpcodeCount(opcode); res != 2)
-                throw Error::InstructionError{ "Ivalid argument count: ", opcode, res };
+                throw Error::InstructionError{ "Invalid argument count: ", opcode, res };
         }
         constexpr Instruction(Instructions::Opcode opcode, int32_t offset)
             :_opcode{ opcode }, _dest{ offset }, _src{ 0 } {

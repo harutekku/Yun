@@ -125,10 +125,12 @@ auto FunctionBuilder::CheckIfReturns() -> void {
         throw Error::AssemblerError{ "Function" + _name + "must contain `ret` instruction" };
 }
 
-auto FunctionBuilder::AddPrint(int32_t source) -> void {
+auto FunctionBuilder::AddUnary(VM::Instructions::Opcode opcode, int32_t source) -> void {
     if (source >= _registerCount)
         throw Error::AssemblerError{ "Register index out of range: ", static_cast<int>(source) };
-    _emitter.Emit(VM::Instructions::Opcode::dbgprintreg, source);
+    else if (VM::Instructions::IsJump(opcode) || VM::Instructions::Opcode::call == opcode)
+        throw Error::AssemblerError{ "Can't add jump or a call directly" };
+    _emitter.Emit(opcode, source);
 }
 
 auto Assembler::BeginFunction(std::string name, uint16_t registerCount, uint16_t argumentCount, bool doesReturn) -> void {
@@ -165,10 +167,10 @@ auto Assembler::AddCall(std::string function) -> void {
     _builder.AddCall(function);
 }
 
-auto Assembler::AddPrint(int32_t source) -> void {
+auto Assembler::AddUnary(VM::Instructions::Opcode opcode, int32_t source) -> void {
     if (!_isBuildingAFunction)
         throw Error::AssemblerError{ "Can't add an instruction when not in build mode" };
-    _builder.AddPrint(source);
+    _builder.AddUnary(opcode, source);
 }
 
 auto Assembler::AddBinary(VM::Instructions::Opcode opcode, uint32_t dest, uint32_t src) -> void {

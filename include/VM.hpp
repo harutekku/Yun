@@ -43,9 +43,6 @@ class VM final {
         auto PrintRegs() -> void;
 
     private:
-        [[nodiscard]] inline auto GetRegister(uint16_t destIndex) -> Primitives::Value&;
-
-    private:
         ExecutionUnit             _unit;
         Containers::RegisterArray _registers;
         Containers::CallStack     _callStack;

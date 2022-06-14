@@ -1,130 +1,145 @@
 #include "../include/Lexer.hpp"
+#include "../include/Instructions.hpp"
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <iterator>
 #include <map>
+#include <string>
 
 namespace Yun::Interpreter {
 
-const static std::map<std::string, TokenType> Keywords{
-    { "true", TokenType::True },
-    { "false", TokenType::False },
-    { "function", TokenType::Function },
-    { "registers", TokenType::RegistersAttribute },
-    { "returns", TokenType::ReturnsAttribute },
-    { "parameters", TokenType::ParametersAttribute },
-    { "i32neg", TokenType::Instruction },
-    { "i32add", TokenType::Instruction },
-    { "i32sub", TokenType::Instruction },
-    { "i32mul", TokenType::Instruction },
-    { "i32div", TokenType::Instruction },
-    { "i32rem", TokenType::Instruction },
-    { "i32and", TokenType::Instruction },
-    { "i32or", TokenType::Instruction },
-    { "i32xor", TokenType::Instruction },
-    { "i32shl", TokenType::Instruction },
-    { "i32shr", TokenType::Instruction },
-    { "i64neg", TokenType::Instruction },
-    { "i64add", TokenType::Instruction },
-    { "i64sub", TokenType::Instruction },
-    { "i64mul", TokenType::Instruction },
-    { "i64div", TokenType::Instruction },
-    { "i64rem", TokenType::Instruction },
-    { "i64and", TokenType::Instruction },
-    { "i64or", TokenType::Instruction },
-    { "i64xor", TokenType::Instruction },
-    { "i64shl", TokenType::Instruction },
-    { "i64shr", TokenType::Instruction },
-    { "u32add", TokenType::Instruction },
-    { "u32sub", TokenType::Instruction },
-    { "u32mul", TokenType::Instruction },
-    { "u32div", TokenType::Instruction },
-    { "u32rem", TokenType::Instruction },
-    { "u32and", TokenType::Instruction },
-    { "u32or", TokenType::Instruction },
-    { "u32xor", TokenType::Instruction },
-    { "u32shl", TokenType::Instruction },
-    { "u32shr", TokenType::Instruction },
-    { "u64add", TokenType::Instruction },
-    { "u64sub", TokenType::Instruction },
-    { "u64mul", TokenType::Instruction },
-    { "u64div", TokenType::Instruction },
-    { "u64rem", TokenType::Instruction },
-    { "u64and", TokenType::Instruction },
-    { "u64or", TokenType::Instruction },
-    { "u64xor", TokenType::Instruction },
-    { "u64shl", TokenType::Instruction },
-    { "u64shr", TokenType::Instruction },
-    { "f32neg", TokenType::Instruction },
-    { "f32add", TokenType::Instruction },
-    { "f32sub", TokenType::Instruction },
-    { "f32mul", TokenType::Instruction },
-    { "f32div", TokenType::Instruction },
-    { "f32rem", TokenType::Instruction },
-    { "f64neg", TokenType::Instruction },
-    { "f64add", TokenType::Instruction },
-    { "f64sub", TokenType::Instruction },
-    { "f64mul", TokenType::Instruction },
-    { "f64div", TokenType::Instruction },
-    { "f64rem", TokenType::Instruction },
-    { "bnot", TokenType::Instruction },
-    { "convi32toi8", TokenType::Instruction },
-    { "convi32toi16", TokenType::Instruction },
-    { "convu32tou8", TokenType::Instruction },
-    { "convu32tou16", TokenType::Instruction },
-    { "convi32toi64", TokenType::Instruction },
-    { "convi32tou64", TokenType::Instruction },
-    { "convi32tou32", TokenType::Instruction },
-    { "convi32tof32", TokenType::Instruction },
-    { "convi32tof64", TokenType::Instruction },
-    { "convi64toi32", TokenType::Instruction },
-    { "convi64tou32", TokenType::Instruction },
-    { "convi64tou64", TokenType::Instruction },
-    { "convi64tof32", TokenType::Instruction },
-    { "convi64tof64", TokenType::Instruction },
-    { "convu32toi64", TokenType::Instruction },
-    { "convu32tou64", TokenType::Instruction },
-    { "convu32toi32", TokenType::Instruction },
-    { "convu32tof32", TokenType::Instruction },
-    { "convu32tof64", TokenType::Instruction },
-    { "convu64toi64", TokenType::Instruction },
-    { "convu64tou32", TokenType::Instruction },
-    { "convu64toi32", TokenType::Instruction },
-    { "convu64tof32", TokenType::Instruction },
-    { "convu64tof64", TokenType::Instruction },
-    { "convf32toi32", TokenType::Instruction },
-    { "convf32toi64", TokenType::Instruction },
-    { "convf32tou32", TokenType::Instruction },
-    { "convf32tof64", TokenType::Instruction },
-    { "convf32tou64", TokenType::Instruction },
-    { "convf64toi32", TokenType::Instruction },
-    { "convf64toi64", TokenType::Instruction },
-    { "convf64tou32", TokenType::Instruction },
-    { "convf64tou64", TokenType::Instruction },
-    { "convf64tof32", TokenType::Instruction },
-    { "cmp", TokenType::Instruction },
-    { "icmp", TokenType::Instruction },
-    { "fcmp", TokenType::Instruction },
-    { "jmp", TokenType::Instruction },
-    { "je", TokenType::Instruction },
-    { "jne", TokenType::Instruction },
-    { "jgt", TokenType::Instruction },
-    { "jge", TokenType::Instruction },
-    { "jlt", TokenType::Instruction },
-    { "jle", TokenType::Instruction },
-    { "call", TokenType::Instruction },
-    { "ret", TokenType::Instruction },
-    { "ldconst", TokenType::Instruction },
-    { "mov", TokenType::Instruction },
-    { "newarray", TokenType::Instruction },
-    { "arraycount", TokenType::Instruction },
-    { "load", TokenType::Instruction },
-    { "store", TokenType::Instruction },
-    { "advance", TokenType::Instruction },
-    { "dbgprintreg", TokenType::Instruction },
-    { "nop", TokenType::Instruction },
-    { "hlt", TokenType::Instruction }
+struct MappedValues {
+    constexpr MappedValues(TokenType type)
+        :Type{ type }, InstrValue{  } {
+    }
+
+    constexpr MappedValues(TokenType type, VM::Instructions::Opcode value)
+        :Type{ type }, InstrValue{ value } {
+    }
+
+    TokenType Type;
+    VM::Instructions::Opcode InstrValue;
+};
+
+const static std::map<std::string, MappedValues> Keywords{
+    { "true",           TokenType::True },
+    { "false",          TokenType::False },
+    { "function",       TokenType::Function },
+    { "registers",      TokenType::RegistersAttribute },
+    { "returns",        TokenType::ReturnsAttribute },
+    { "parameters",     TokenType::ParametersAttribute },
+    { "i32neg",       { TokenType::Instruction, VM::Instructions::Opcode::i32neg } },
+    { "i32add",       { TokenType::Instruction, VM::Instructions::Opcode::i32add } },
+    { "i32sub",       { TokenType::Instruction, VM::Instructions::Opcode::i32sub } },
+    { "i32mul",       { TokenType::Instruction, VM::Instructions::Opcode::i32mul } },
+    { "i32div",       { TokenType::Instruction, VM::Instructions::Opcode::i32div } },
+    { "i32rem",       { TokenType::Instruction, VM::Instructions::Opcode::i32rem } },
+    { "i32and",       { TokenType::Instruction, VM::Instructions::Opcode::i32and } },
+    { "i32or",        { TokenType::Instruction, VM::Instructions::Opcode::i32or  } },
+    { "i32xor",       { TokenType::Instruction, VM::Instructions::Opcode::i32xor } },
+    { "i32shl",       { TokenType::Instruction, VM::Instructions::Opcode::i32shl } },
+    { "i32shr",       { TokenType::Instruction, VM::Instructions::Opcode::i32shr } },
+    { "i64neg",       { TokenType::Instruction, VM::Instructions::Opcode::i64neg } },
+    { "i64add",       { TokenType::Instruction, VM::Instructions::Opcode::i64add } },
+    { "i64sub",       { TokenType::Instruction, VM::Instructions::Opcode::i64sub } },
+    { "i64mul",       { TokenType::Instruction, VM::Instructions::Opcode::i64mul } },
+    { "i64div",       { TokenType::Instruction, VM::Instructions::Opcode::i64div } },
+    { "i64rem",       { TokenType::Instruction, VM::Instructions::Opcode::i64rem } },
+    { "i64and",       { TokenType::Instruction, VM::Instructions::Opcode::i64and } },
+    { "i64or",        { TokenType::Instruction, VM::Instructions::Opcode::i64or } },
+    { "i64xor",       { TokenType::Instruction, VM::Instructions::Opcode::i64xor } },
+    { "i64shl",       { TokenType::Instruction, VM::Instructions::Opcode::i64shl } },
+    { "i64shr",       { TokenType::Instruction, VM::Instructions::Opcode::i64shr } },
+    { "u32add",       { TokenType::Instruction, VM::Instructions::Opcode::u32add } },
+    { "u32sub",       { TokenType::Instruction, VM::Instructions::Opcode::u32sub } },
+    { "u32mul",       { TokenType::Instruction, VM::Instructions::Opcode::u32mul } },
+    { "u32div",       { TokenType::Instruction, VM::Instructions::Opcode::u32div } },
+    { "u32rem",       { TokenType::Instruction, VM::Instructions::Opcode::u32rem } },
+    { "u32and",       { TokenType::Instruction, VM::Instructions::Opcode::u32and } },
+    { "u32or",        { TokenType::Instruction, VM::Instructions::Opcode::u32or } },
+    { "u32xor",       { TokenType::Instruction, VM::Instructions::Opcode::u32xor } },
+    { "u32shl",       { TokenType::Instruction, VM::Instructions::Opcode::u32shl } },
+    { "u32shr",       { TokenType::Instruction, VM::Instructions::Opcode::u32shr } },
+    { "u64add",       { TokenType::Instruction, VM::Instructions::Opcode::u64add } },
+    { "u64sub",       { TokenType::Instruction, VM::Instructions::Opcode::u64sub } },
+    { "u64mul",       { TokenType::Instruction, VM::Instructions::Opcode::u64mul } },
+    { "u64div",       { TokenType::Instruction, VM::Instructions::Opcode::u64div } },
+    { "u64rem",       { TokenType::Instruction, VM::Instructions::Opcode::u64rem } },
+    { "u64and",       { TokenType::Instruction, VM::Instructions::Opcode::u64and } },
+    { "u64or",        { TokenType::Instruction, VM::Instructions::Opcode::u64or } },
+    { "u64xor",       { TokenType::Instruction, VM::Instructions::Opcode::u64xor } },
+    { "u64shl",       { TokenType::Instruction, VM::Instructions::Opcode::u64shl } },
+    { "u64shr",       { TokenType::Instruction, VM::Instructions::Opcode::u64shr } },
+    { "f32neg",       { TokenType::Instruction, VM::Instructions::Opcode::f32neg } },
+    { "f32add",       { TokenType::Instruction, VM::Instructions::Opcode::f32add } },
+    { "f32sub",       { TokenType::Instruction, VM::Instructions::Opcode::f32sub } },
+    { "f32mul",       { TokenType::Instruction, VM::Instructions::Opcode::f32mul } },
+    { "f32div",       { TokenType::Instruction, VM::Instructions::Opcode::f32div } },
+    { "f32rem",       { TokenType::Instruction, VM::Instructions::Opcode::f32rem } },
+    { "f64neg",       { TokenType::Instruction, VM::Instructions::Opcode::f64neg } },
+    { "f64add",       { TokenType::Instruction, VM::Instructions::Opcode::f64add } },
+    { "f64sub",       { TokenType::Instruction, VM::Instructions::Opcode::f64sub } },
+    { "f64mul",       { TokenType::Instruction, VM::Instructions::Opcode::f64mul } },
+    { "f64div",       { TokenType::Instruction, VM::Instructions::Opcode::f64div } },
+    { "f64rem",       { TokenType::Instruction, VM::Instructions::Opcode::f64rem } },
+    { "bnot",         { TokenType::Instruction, VM::Instructions::Opcode::bnot } },
+    { "convi32toi8",  { TokenType::Instruction, VM::Instructions::Opcode::convi32toi8 } },
+    { "convi32toi16", { TokenType::Instruction, VM::Instructions::Opcode::convi32toi16 } },
+    { "convu32tou8",  { TokenType::Instruction, VM::Instructions::Opcode::convu32tou8 } },
+    { "convu32tou16", { TokenType::Instruction, VM::Instructions::Opcode::convu32tou16 } },
+    { "convi32toi64", { TokenType::Instruction, VM::Instructions::Opcode::convi32toi64 } },
+    { "convi32tou64", { TokenType::Instruction, VM::Instructions::Opcode::convi32tou64 } },
+    { "convi32tou32", { TokenType::Instruction, VM::Instructions::Opcode::convi32tou32 } },
+    { "convi32tof32", { TokenType::Instruction, VM::Instructions::Opcode::convi32tof32 } },
+    { "convi32tof64", { TokenType::Instruction, VM::Instructions::Opcode::convi32tof64 } },
+    { "convi64toi32", { TokenType::Instruction, VM::Instructions::Opcode::convi64toi32 } },
+    { "convi64tou32", { TokenType::Instruction, VM::Instructions::Opcode::convi64tou32 } },
+    { "convi64tou64", { TokenType::Instruction, VM::Instructions::Opcode::convi64tou64 } },
+    { "convi64tof32", { TokenType::Instruction, VM::Instructions::Opcode::convi64tof32 } },
+    { "convi64tof64", { TokenType::Instruction, VM::Instructions::Opcode::convi64tof64 } },
+    { "convu32toi64", { TokenType::Instruction, VM::Instructions::Opcode::convu32toi64 } },
+    { "convu32tou64", { TokenType::Instruction, VM::Instructions::Opcode::convu32tou64 } },
+    { "convu32toi32", { TokenType::Instruction, VM::Instructions::Opcode::convu32toi32 } },
+    { "convu32tof32", { TokenType::Instruction, VM::Instructions::Opcode::convu32tof32 } },
+    { "convu32tof64", { TokenType::Instruction, VM::Instructions::Opcode::convu32tof64 } },
+    { "convu64toi64", { TokenType::Instruction, VM::Instructions::Opcode::convu64toi64 } },
+    { "convu64tou32", { TokenType::Instruction, VM::Instructions::Opcode::convu64tou32 } },
+    { "convu64toi32", { TokenType::Instruction, VM::Instructions::Opcode::convu64toi32 } },
+    { "convu64tof32", { TokenType::Instruction, VM::Instructions::Opcode::convu64tof32 } },
+    { "convu64tof64", { TokenType::Instruction, VM::Instructions::Opcode::convu64tof64 } },
+    { "convf32toi32", { TokenType::Instruction, VM::Instructions::Opcode::convf32toi32 } },
+    { "convf32toi64", { TokenType::Instruction, VM::Instructions::Opcode::convf32toi64 } },
+    { "convf32tou32", { TokenType::Instruction, VM::Instructions::Opcode::convf32tou32 } },
+    { "convf32tof64", { TokenType::Instruction, VM::Instructions::Opcode::convf32tof64 } },
+    { "convf32tou64", { TokenType::Instruction, VM::Instructions::Opcode::convf32tou64 } },
+    { "convf64toi32", { TokenType::Instruction, VM::Instructions::Opcode::convf64toi32 } },
+    { "convf64toi64", { TokenType::Instruction, VM::Instructions::Opcode::convf64toi64 } },
+    { "convf64tou32", { TokenType::Instruction, VM::Instructions::Opcode::convf64tou32 } },
+    { "convf64tou64", { TokenType::Instruction, VM::Instructions::Opcode::convf64tou64 } },
+    { "convf64tof32", { TokenType::Instruction, VM::Instructions::Opcode::convf64tof32 } },
+    { "cmp",          { TokenType::Instruction, VM::Instructions::Opcode::cmp } },
+    { "icmp",         { TokenType::Instruction, VM::Instructions::Opcode::icmp } },
+    { "fcmp",         { TokenType::Instruction, VM::Instructions::Opcode::fcmp } },
+    { "jmp",          { TokenType::Instruction, VM::Instructions::Opcode::jmp } },
+    { "je",           { TokenType::Instruction, VM::Instructions::Opcode::je } },
+    { "jne",          { TokenType::Instruction, VM::Instructions::Opcode::jne } },
+    { "jgt",          { TokenType::Instruction, VM::Instructions::Opcode::jgt } },
+    { "jge",          { TokenType::Instruction, VM::Instructions::Opcode::jge } },
+    { "jlt",          { TokenType::Instruction, VM::Instructions::Opcode::jlt } },
+    { "jle",          { TokenType::Instruction, VM::Instructions::Opcode::jle } },
+    { "call",         { TokenType::Instruction, VM::Instructions::Opcode::call } },
+    { "ret",          { TokenType::Instruction, VM::Instructions::Opcode::ret } },
+    { "ldconst",      { TokenType::Instruction, VM::Instructions::Opcode::ldconst } },
+    { "mov",          { TokenType::Instruction, VM::Instructions::Opcode::mov } },
+    { "newarray",     { TokenType::Instruction, VM::Instructions::Opcode::newarray } },
+    { "arraycount",   { TokenType::Instruction, VM::Instructions::Opcode::arraycount } },
+    { "load",         { TokenType::Instruction, VM::Instructions::Opcode::load } },
+    { "store",        { TokenType::Instruction, VM::Instructions::Opcode::store } },
+    { "advance",      { TokenType::Instruction, VM::Instructions::Opcode::advance } },
+    { "dbgprintreg",  { TokenType::Instruction, VM::Instructions::Opcode::dbgprintreg } },
+    { "nop",          { TokenType::Instruction, VM::Instructions::Opcode::nop } },
+    { "hlt",          { TokenType::Instruction, VM::Instructions::Opcode::hlt } }
 };
 
 Token::Token(TokenType type, uint32_t line)
@@ -205,6 +220,9 @@ auto Lexer::Next() -> void {
             Number();
         else
             ReportError("Unexpected characters in immediate operand");
+        break;
+    case '@':
+        // TODO: Implement
         break;
     default:
         if (std::isalpha(c))
@@ -289,37 +307,47 @@ auto Lexer::Number() -> void {
             c = NextCharacter();
     }
 
-        auto end = _src.data() + _current;
-    if (isFloat) {
-        auto res = std::strtod(_src.data() + _start + 1, &end);
-        if (errno == ERANGE || end != _src.data() + _current) {
-            ReportError("Invalid literal");
-            return;
-        } else
-            AddToken(TokenType::FloatLiteral, res);
-    } else if (isSigned) {
-        auto res = std::strtol(_src.data() + _start + 1, &end, 10);
-        if (errno == ERANGE || end != _src.data() + _current) {
-            ReportError("Invalid literal");
-            return;
-        } else
-            AddToken(TokenType::SignedLiteral, res);
-    } else {
-        auto res = std::strtoul(_src.data() + _start + 1, &end, 10);
-        if (errno == ERANGE || end != _src.data() + _current) {
-            ReportError("Invalid literal");
-            return;
-        } else
-            AddToken(TokenType::UnsignedLiteral, res);
+    std::string res{ _src.data() + _start + 1, _src.data() + _current };
+    try {
+
+    if (isFloat)
+        AddToken(TokenType::FloatLiteral, std::stod(res));
+    else if (isSigned)
+        AddToken(TokenType::SignedLiteral, std::stol(res));
+    else
+        AddToken(TokenType::UnsignedLiteral, std::stoul(res));
+    } catch (std::exception&) {
+        ReportError("Invalid literal");
     }
 }
 
 auto Lexer::Identifier() -> void {
-    for (char c = Peek(); std::isalpha(c) || std::isdigit(c); c = Peek())
-        c = NextCharacter();
+    bool mightBeRegister = false;    
+    char c = _src[_current - 1];
+    if (c == 'R' && std::isdigit(Peek()))
+        mightBeRegister = true;
+
+    for (c = NextCharacter(); std::isalpha(c) || std::isdigit(c); c = NextCharacter()) {
+        if (!std::isdigit(c))
+            mightBeRegister = false;
+    }
+
+    if (c == ':' && !mightBeRegister) {
+        AddToken(TokenType::Label);
+        return;
+    }
+
+    --_current;
+
     std::string key{ _src.begin() + _start, _src.begin() + _current };
-    if (auto it = Keywords.find(key); it != Keywords.end()) {
-        AddToken(it->second);
+    if (mightBeRegister) {
+        AddToken(TokenType::Register);
+        return;
+    } else if (auto it = Keywords.find(key); it != Keywords.end()) {
+        if (auto type = it->second.Type; type == TokenType::Instruction)
+            AddToken(it->second.Type, it->second.InstrValue);
+        else
+            AddToken(it->second.Type);
         return;
     }
 

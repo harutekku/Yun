@@ -30,9 +30,7 @@ class RegisterArray {
         auto Copy(std::size_t, std::size_t, ArrayHeap&) -> void;
         auto SaveReturnValue(std::size_t, ArrayHeap&) -> void;
 
-        [[nodiscard]] constexpr auto operator[](size_t index) -> Primitives::Value& {
-            return _registers[index];
-        }
+        [[nodiscard]] auto operator[](size_t index) -> Primitives::Value&;
 
     public:
         auto Print() -> void;
@@ -125,7 +123,10 @@ class SymbolTable {
 
 class Frame {
     public:
-        constexpr Frame() noexcept = default;
+        constexpr Frame() noexcept
+            :ReturnAddress{ 0 }, RegisterCount{ 0 }, KeepReturnValue{ 0 }, End{ 0 } {
+        }
+
         constexpr Frame(uint32_t returnAddress, uint16_t registerCount, bool keepReturnValue, uint32_t end) noexcept
             :ReturnAddress{ returnAddress }, RegisterCount{ registerCount }, KeepReturnValue{ keepReturnValue }, End{ end } {
         }

@@ -5,7 +5,7 @@ export LD        := g++
 
 # Flags
 #-----------------------------------------------------------
-export CXXFLAGS  := -c -g -O0 -std=c++20 -Wall -Wextra -Wpedantic
+export CXXFLAGS  := -c -g -O0 -std=c++17 -Wall -Wextra -Wpedantic
 export LDFLAGS   := -o
 CPPFLAGS         := -I include
 DEPFLAGS          = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.temp.d
@@ -31,7 +31,8 @@ SRCFILES         := main.cpp \
                     VM.cpp \
                     Assembler.cpp \
                     Containers.cpp \
-                    Lexer.cpp # Source files
+                    Lexer.cpp \
+                    Parser.cpp # Source files
 export OBJFILES  := $(SRCFILES:%.$(SRCEXT)=%.o)
 DEPFILES         := $(SRCFILES:%.$(SRCEXT)=$(DEPDIR)/%.d)
 

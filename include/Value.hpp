@@ -29,31 +29,30 @@ enum class Type : uint8_t {
 };
 
 [[nodiscard]] constexpr auto TypeToString(Type type) noexcept -> const char* {
-    using enum Type;
     switch (type) {
-    case Uninit:
+    case Type::Uninit:
         return "<uninit>";
-    case Int8:
+    case Type::Int8:
         return "Int8";
-    case Int16:
+    case Type::Int16:
         return "Int16";
-    case Int32:
+    case Type::Int32:
         return "Int32";
-    case Int64:
+    case Type::Int64:
         return "Int64";
-    case Uint8:
+    case Type::Uint8:
         return "Uint8";
-    case Uint16:
+    case Type::Uint16:
         return "Uint16";
-    case Uint32:
+    case Type::Uint32:
         return "Uint32";
-    case Uint64:
+    case Type::Uint64:
         return "Uint64";
-    case Float32:
+    case Type::Float32:
         return "Float32";
-    case Float64:
+    case Type::Float64:
         return "Float64";
-    case Reference:
+    case Type::Reference:
         return "Reference";
     default:
         return "<err>";

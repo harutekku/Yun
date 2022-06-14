@@ -39,7 +39,6 @@ ExecutionUnit::ExecutionUnit(std::string name, Containers::SymbolTable symbols, 
 }
 
 [[nodiscard]] auto ExecutionUnit::DisassembleInstruction(size_t offset) -> size_t {
-    using enum Instructions::Opcode;
     printf("    0x%04zx | ", offset * 4);
 
     auto instruction = _buffer.begin()[offset++];
@@ -47,7 +46,7 @@ ExecutionUnit::ExecutionUnit(std::string name, Containers::SymbolTable symbols, 
     auto dest = (instruction >> 12) & 0xFFF;
     auto src = (instruction) & 0xFFF;
 
-    if (op > static_cast<uint8_t>(hlt)) {
+    if (op > static_cast<uint8_t>(Instructions::Opcode::hlt)) {
         puts("<err>");
         return offset;
     }
@@ -57,14 +56,14 @@ ExecutionUnit::ExecutionUnit(std::string name, Containers::SymbolTable symbols, 
 
     int args = OpcodeCount(opcode);
     if (args == 1)
-        if (opcode == call)
+        if (opcode == Instructions::Opcode::call)
             printf(" %-12s @%s\n", OpcodeToString(opcode), _symbols.FindByLocation(instruction & 0xFFFFFF).Name.c_str());
         else if (Instructions::IsJump(opcode))
             printf(" %-12s 0x%x\n", OpcodeToString(opcode), instruction & 0xFFFFFF);
         else
-            printf(" %-12s %x\n", OpcodeToString(opcode), dest);
+            printf(" %-12s R%d\n", OpcodeToString(opcode), dest);
     else if (args == 2)
-        if (opcode == ldconst)
+        if (opcode == Instructions::Opcode::ldconst)
             printf(" %-12s R%d, $0x%d\n", OpcodeToString(opcode), dest, src);
         else
             printf(" %-12s R%d, R%d\n", OpcodeToString(opcode), dest, src);

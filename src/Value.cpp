@@ -103,44 +103,43 @@ namespace Yun::VM::Primitives {
 
 
     [[nodiscard]] auto Value::ToString(bool verbose) const noexcept -> std::string {
-        using enum Type;
         std::string retVal{ verbose? "(" : "" };
 
         switch (_type) {
-        case Uninit:
+        case Type::Uninit:
             retVal.append("null");
             break;
-        case Int8:
+        case Type::Int8:
             retVal.append(std::to_string(_as.int8));
             break;
-        case Int16:
+        case Type::Int16:
             retVal.append(std::to_string(_as.int16));
             break;
-        case Int32:
+        case Type::Int32:
             retVal.append(std::to_string(_as.int32));
             break;
-        case Int64:
+        case Type::Int64:
             retVal.append(std::to_string(_as.int64));
             break;
-        case Uint8:
+        case Type::Uint8:
             retVal.append(std::to_string(_as.uint8));
             break;
-        case Uint16:
+        case Type::Uint16:
             retVal.append(std::to_string(_as.uint16));
             break;
-        case Uint32:
+        case Type::Uint32:
             retVal.append(std::to_string(_as.uint32));
             break;
-        case Uint64:
+        case Type::Uint64:
             retVal.append(std::to_string(_as.uint64));
             break;
-        case Float32:
+        case Type::Float32:
             retVal.append(std::to_string(_as.float32));
             break;
-        case Float64:
+        case Type::Float64:
             retVal.append(std::to_string(_as.float64));
             break;
-        case Reference:
+        case Type::Reference:
             retVal.append(_as.ref.ToString());
             break;
         }

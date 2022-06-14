@@ -1,8 +1,10 @@
 #ifndef LEXER_HPP
 #define LEXER_HPP
 
+#include "Instructions.hpp"
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace Yun::Interpreter {
@@ -26,8 +28,8 @@ namespace Yun::Interpreter {
         
         Label,
         Function,
-        Register,
         Instruction,
+        Register,
 
         RegistersAttribute,
         ReturnsAttribute,
@@ -71,10 +73,10 @@ namespace Yun::Interpreter {
             return "Label";
         case TokenType::Function:
             return "Function";
-        case TokenType::Register:
-            return "Register";
         case TokenType::Instruction:
             return "Instruction";
+        case TokenType::Register:
+            return "Register";
         case TokenType::RegistersAttribute:
             return "RegistersAttribute";
         case TokenType::ReturnsAttribute:
@@ -99,8 +101,10 @@ namespace Yun::Interpreter {
                     SignedLiteral = value;
                 else if constexpr (std::is_same_v<T, uint64_t>)
                     UnsignedLitaral = value;
-                else
+                else if constexpr (std::is_same_v<T, double>)
                     FloatingPointLiteral = value;
+                else if constexpr (std::is_same_v<T, VM::Instructions::Opcode>)
+                    InstrLiteral = value;
             }
 
 
@@ -111,11 +115,12 @@ namespace Yun::Interpreter {
 
         public:
             TokenType        Type;
-            std::string_view Lexeme;
+            std::string      Lexeme;
             union {
-                uint64_t     UnsignedLitaral;
-                int64_t      SignedLiteral;
-                double       FloatingPointLiteral;
+                uint64_t                 UnsignedLitaral;
+                int64_t                  SignedLiteral;
+                double                   FloatingPointLiteral;
+                VM::Instructions::Opcode InstrLiteral;
             };
             uint32_t         Line;
     };
@@ -139,7 +144,7 @@ namespace Yun::Interpreter {
 
             template<typename T = uint64_t>
             auto AddToken(TokenType type, T literal = T{  }) -> void {
-                std::string_view lexeme{ _src.begin() + _start, _src.begin() + _current };
+                std::string_view lexeme{ _src.c_str() + _start, _current - _start };
                 _tokenBuffer.push_back({ type, lexeme, literal, _line });
             }
             auto ReportError([[maybe_unused]] std::string_view) -> void;

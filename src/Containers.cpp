@@ -49,6 +49,10 @@ auto RegisterArray::SaveReturnValue(std::size_t currentFrameCount, ArrayHeap& he
         heap.Notify(oldLast.As<Primitives::Reference>().HeapID, true);
 }
 
+[[nodiscard]] auto RegisterArray::operator[](size_t index) -> Primitives::Value& {
+    return _registers[index];
+}
+
 auto RegisterArray::Print() -> void {
     for (size_t i = 0; i != _index; ++i)
         printf("  0x%zx -> %s\n", i, _registers[i].ToString().data());

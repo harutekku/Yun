@@ -3,9 +3,11 @@
 #include <memory>
 #include <exception>
 #include "../include/Lexer.hpp"
+#include "../include/Parser.hpp"
+#include "../include/VM.hpp"
 
-auto main(void) -> int try {
-    std::unique_ptr<FILE, int(*)(FILE*)> file{ fopen("Test.txt", "r"), fclose };
+[[nodiscard]] auto GetRawSource(const char* filename) -> std::string {
+    std::unique_ptr<FILE, int(*)(FILE*)> file{ fopen(filename, "r"), fclose };
     fseek(file.get(), 0, SEEK_END);
     size_t size = ftell(file.get());
 
@@ -14,17 +16,28 @@ auto main(void) -> int try {
 
     rewind(file.get());
     fread(buffer.data(), 1, size, file.get());
+    return buffer;
+}
 
-    Yun::Interpreter::Lexer l{ std::move(buffer) };
+auto main(void) -> int try {
+
+    Yun::Interpreter::Lexer l{ GetRawSource("Test.txt") };
     auto& res = l.Scan();
 
     if (l.HadError())
         return 1;
 
-    for (const auto& tok : res)
-        std::puts(tok.ToString().c_str());
+    Yun::Interpreter::Parser p{ std::move(res) };
+    auto e = p.Parse();
+
+    e.Disassemble();
+    
+    Yun::VM::VM v{ std::move(e) };
+
+    v.Run();
 
     return 0;
+} catch (Yun::Error::ParseError&) {
 } catch (std::exception& e) {
     puts(e.what());
 }

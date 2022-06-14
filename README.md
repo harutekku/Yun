@@ -1,6 +1,6 @@
 # Yun Virtual Machine
 
-**YVM** is a register-based, bytecode-based, type-checking virtual machine made 
+**YVM** is a register-based, bytecode-based, type checking virtual machine made 
 in pure C++ for ***F U N*** and to learn how VMs work.
 
 ## Motivation
@@ -36,7 +36,7 @@ function main() {
 
 As in other languages, `main` function with no arguments and not returning any value is
 an entry point.
-Every function defintion starts with an attribute list. Attribute `registers` indicates
+Every function definition starts with an attribute list. Attribute `registers` indicates
 how many registers a function needs for its internal use and for storing its arguments.
 For instance:
 
@@ -48,7 +48,7 @@ function sum() {
 }
 ```
 
-Declares a function that needs two registers for its internal use: two of them will be used
+Declares a function that requires two registers for its internal use: two of them will be used
 for storing actual parameters and a caller is expected to keep its return value. Declaring
 a function returning a value or requiring arguments and not having any registers is an error
 that will be caught during compilation. Notice that you always need to specify at least
@@ -99,7 +99,7 @@ a verifier is a non-trivial task requiring some understanding of graph theory.
 
 # Special thanks
 
-- To my collegues for their patience and understanding
+- To my colleagues for their patience and understanding
 - To Yuno - the VM is named after her after all
 
 # License

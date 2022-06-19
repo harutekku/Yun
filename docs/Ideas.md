@@ -16,7 +16,8 @@
 
 - Let's take Java approach, i.e the operand types must match the
   opcode type 
-- Format
+- Format:
+
 ```
 
   opcode    dest12    src12
@@ -74,17 +75,13 @@
   - From 48s on `Fib(40)` we went down to 33s
   - Update: now it's down to 25s
   - We're officialy faster than Python
+  - Update: 22s baby!
 - What about arrays?
-  - Creation - `newarray   count12, type12`
+  - Creation - `newarray   count12, type12` - Where type is a type underlying value from `Value.hpp`
   - Count    - `arraycount ref12`
   - Load     - `load       dest12,  ref12`
   - Store    - `store      ref12,   src12`
   - Advance  - `advance    ref12,   index12`
-
-## GC
-
-- Get rid of slow reference counting
-  - Maybe implement mark-and-sweep with some concurrency
 
 ## TODOs
 
@@ -108,10 +105,10 @@
 
 [x] Implement recursive-descent parser
 
-[ ] `const`, `constexpr` and `noexcept` correctness
+[x] `const`, `constexpr` and `noexcept` correctness
 
-[ ] Make better error reporting in parser
+[ ] Make better error reporting in parser <!--I can't be bothered-->
 
-[ ] You VILL write ZE DOCS and you VILL be HAPPY!
+[x] You VILL write ZE DOCS and you VILL be HAPPY!
 
-[ ] Go inna woods
+[x] Go inna woods

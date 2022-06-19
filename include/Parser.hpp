@@ -38,11 +38,14 @@ namespace Yun::Interpreter {
             auto Function() -> void;
             auto FunctionDeclaration() -> void;
             auto Attributes() -> void;
+            auto RegistersAttribute() -> void;
+            auto ParametersAttribute() -> void;
+            auto ReturnsAttribute() -> void;
             auto Block() -> void;
             auto Line() -> void;
 
         private:
-            auto ReportError(std::string_view) -> void;
+            auto ReportError(std::string_view, ...) -> void;
 
         private:
             ASM::Assembler     _assembler;

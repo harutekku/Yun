@@ -1,0 +1,17 @@
+[registers=2]
+function main() {
+	ldconst      R0, -1
+	ldconst      R1, 70
+	convu64toi64 R1
+	call         Add
+	printreg     R1
+	ret
+}
+
+# Expects two signed 64-bit wide integers
+# Returns their sum
+[registers=2, parameters=2, returns=true]
+function Add() {
+    i64add       R0, R1
+	ret
+}

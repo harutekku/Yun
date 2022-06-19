@@ -2,8 +2,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstdarg>
 #include <iterator>
-#include <math.h>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -66,7 +66,7 @@ auto Parser::FunctionDeclaration() -> void {
     if (t.Type != TokenType::Function)
         ReportError("Token mismatch: expected 'function' keyword");
 
-    t = NextPrintable();
+    t = Next();
 
     if (t.Type != TokenType::Id)
         ReportError("Token mismatch: expected identifier");
@@ -90,31 +90,35 @@ auto Parser::Attributes() -> void {
         ReportError("Token mismatch: expected left bracket");
 
     t = Next();
+    bool sawRegisters  = false;
+    bool sawParameters = false;
+    bool sawReturns    = false;
 
-    for (auto& token = Next(); true; token = Next()) {
-        if (t.Type == TokenType::RegistersAttribute) {
-            if (token.Type != TokenType::Equals)
-                ReportError("Token mismatch: expected '='");
-            token = Next();
-            if (token.Type != TokenType::UnsignedLiteral)
-                ReportError("Token mismatch: expected unsigned literal");
-            _state.RegisterCount = token.UnsignedLitaral;
-        } else if (t.Type == TokenType::ParametersAttribute) {
-            if (token.Type != TokenType::Equals)
-                ReportError("Token mismatch: expected '='");
-            token = Next();
-            if (token.Type != TokenType::UnsignedLiteral)
-                ReportError("Token mismatch: expected unsigned literal");
-            _state.ArgCount = token.UnsignedLitaral;
-        } else if (t.Type == TokenType::ReturnsAttribute) {
-            if (token.Type != TokenType::Equals)
-                ReportError("Token mismatch: expected '='");
-            token = Next();
-            if (token.Type != TokenType::False && token.Type != TokenType::True)
-                ReportError("Token mismatch: expected boolean value");
-            _state.KeepReturnValue = token.Type == TokenType::False? false : true;
-        } else
-            ReportError("Bad token");
+    while (true) {
+
+        switch (t.Type) {
+        case TokenType::RegistersAttribute:
+            if (sawRegisters)
+                ReportError("Error: redefinition of attribute 'registers' is not allowed");
+            RegistersAttribute();
+            sawRegisters  = true;
+            break;
+        case TokenType::ParametersAttribute:
+            if (sawParameters)
+                ReportError("Error: redefinition of attribute 'parameters' is not allowed");
+            ParametersAttribute();
+            sawParameters = true;
+            break;
+        case TokenType::ReturnsAttribute:
+            if (sawReturns)
+                ReportError("Error: redefinition of attribute 'returns' is not allowed");
+            ReturnsAttribute();
+            sawReturns    = true;
+            break;
+        default:
+            ReportError("Unexpected token: '%s'", t.Lexeme.c_str());
+            break;
+        }
 
         t = Next();
 
@@ -138,8 +142,39 @@ auto Parser::Attributes() -> void {
     return;    
 }
 
+auto Parser::RegistersAttribute() -> void {
+    auto& token = Next();
+    if (token.Type != TokenType::Equals)
+        ReportError("Token mismatch: expected '='");
+    token = Next();
+    if (token.Type != TokenType::UnsignedLiteral)
+        ReportError("Token mismatch: expected unsigned literal");
+    _state.RegisterCount = token.UnsignedLitaral;
+}
+
+auto Parser::ParametersAttribute() -> void {
+    auto& token = Next();
+
+    if (token.Type != TokenType::Equals)
+        ReportError("Token mismatch: expected '='");
+    token = Next();
+    if (token.Type != TokenType::UnsignedLiteral)
+        ReportError("Token mismatch: expected unsigned literal");
+    _state.ArgCount = token.UnsignedLitaral;
+}
+
+auto Parser::ReturnsAttribute() -> void {
+    auto& token = Next();
+    if (token.Type != TokenType::Equals)
+        ReportError("Token mismatch: expected '='");
+    token = Next();
+    if (token.Type != TokenType::False && token.Type != TokenType::True)
+        ReportError("Token mismatch: expected boolean value");
+    _state.KeepReturnValue = token.Type == TokenType::False? false : true;
+}
+
 auto Parser::Block() -> void {
-    auto& t = Next();
+    auto& t = NextPrintable();
 
     if (t.Type != TokenType::LeftBrace)
         ReportError("Token mismatch: expected '{'");
@@ -171,7 +206,7 @@ auto Parser::Line() -> void {
         return;
 
     if (t.Type != TokenType::Instruction)
-        ReportError("Bad token");
+        ReportError("Unexpected token: '%s'", t.Lexeme.c_str());
 
     if (auto operands = VM::Instructions::OpcodeCount(t.InstrLiteral); operands == 0) {
         _assembler.AddVoid(t.InstrLiteral);
@@ -221,14 +256,20 @@ auto Parser::Line() -> void {
     t = Next();
 
     if (t.Type != TokenType::Newline)
-        ReportError("Expected newline after void instruction");
+        ReportError("Expected newline after instruction");
 }
 
-auto Parser::ReportError(std::string_view message) -> void {
-    puts(message.data());
-    // TODO: Maybe sync the parser if an error occurs
-    // For now, let's just abort
+auto Parser::ReportError(std::string_view message, ...) -> void {
+    va_list list;
+    va_start(list, message);
+    vfprintf(stderr, message.data(), list);
+    va_end(list);
+    putchar('\n');
     exit(EXIT_FAILURE);
 }
 
 }
+
+
+
+

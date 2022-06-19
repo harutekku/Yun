@@ -1,0 +1,27 @@
+[registers=1]
+function main() {
+    ldconst     R0, 40
+    call        Fibonacci
+    printreg    R0
+    ret
+}
+
+[registers=4, parameters=1, returns=true]
+function Fibonacci() {
+    ldconst R1, 1
+    cmp     R0, R1
+    jgt     end
+    ret
+end:
+    mov     R3, R0
+    u64sub  R3, R1
+    call    Fibonacci
+    mov     R2, R3
+    ldconst R1, 2
+    mov     R3, R0
+    u64sub  R3, R1
+    call    Fibonacci
+    u64add  R2, R3
+    mov     R0, R2
+    ret
+}

@@ -1,6 +1,6 @@
 # Yun Virtual Machine
 
-**YVM** is a register-based, bytecode-based, type checking virtual machine made 
+**YVM** is a register-based, bytecode-based, type-checking virtual machine made 
 in pure C++ for ***F U N*** and to learn how VMs work.
 
 ## Motivation
@@ -36,7 +36,7 @@ function main() {
 
 As in other languages, `main` function with no arguments and not returning any value is
 an entry point.
-Every function definition starts with an attribute list. Attribute `registers` indicates
+Every function defintion starts with an attribute list. Attribute `registers` indicates
 how many registers a function needs for its internal use and for storing its arguments.
 For instance:
 
@@ -48,7 +48,7 @@ function sum() {
 }
 ```
 
-Declares a function that requires two registers for its internal use: two of them will be used
+Declares a function that needs two registers for its internal use: two of them will be used
 for storing actual parameters and a caller is expected to keep its return value. Declaring
 a function returning a value or requiring arguments and not having any registers is an error
 that will be caught during compilation. Notice that you always need to specify at least
@@ -77,6 +77,16 @@ All literals, by default, are 64-bit wide. YASN currently supports three types o
 unsigned, signed and floating-point literals. You have to convert them to
 appropriate type using proper conversion instructions if you need to.
 
+## Building
+
+On Linux, if you have gcc, simply type:
+
+```bash
+make
+```
+
+For building on Windows, check the appropriate file in the documentation
+
 ## Documentation 
 
 Documentation is available in the `docs` directory. It's written in Markdown and 
@@ -90,7 +100,6 @@ of mine and I enjoy working on it. One of the features I would love to add is a 
 verifier - I hate type-checking at runtime at the cost of performance. However, adding
 a verifier is a non-trivial task requiring some understanding of graph theory.
 
-
 # Credits
 
 - `Crafting Interpreters` by Robert Nystrom - A nice book about interpreters. YASN lexer
@@ -99,7 +108,7 @@ a verifier is a non-trivial task requiring some understanding of graph theory.
 
 # Special thanks
 
-- To my colleagues for their patience and understanding
+- To my collegues for their patience and understanding
 - To Yuno - the VM is named after her after all
 
 # License

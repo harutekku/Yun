@@ -1,0 +1,28 @@
+[registers=4]
+function main() 
+{
+    ldconst R0, 16
+	convu64tou32 R0
+	ldconst R1, 1
+	convu64tou32 R1
+
+	newarray R0, R1
+    
+	ldconst R3, 127
+	convu64toi32 R3
+	convi32toi8  R3
+	store R0, R3
+
+	printreg R0
+
+	ldconst R1, 0
+	convu64tou32 R1
+
+    printreg R1
+
+    load R1, R0
+
+	printreg R1
+
+	ret
+}

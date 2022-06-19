@@ -1,0 +1,6 @@
+[registers=0]
+function main() {
+	main:
+	jmp main
+	ret
+}

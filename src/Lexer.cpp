@@ -153,8 +153,10 @@ Lexer::Lexer(std::string source)
 }
 
 [[nodiscard]] auto Token::ToString() const -> std::string {
-    std::string retVal{ "(" };
+    std::string retVal{ "('" };
     retVal.append(Type == TokenType::Newline? "\\n" : Lexeme);
+    retVal.append("':");
+    retVal.append(std::to_string(Line));
     retVal.append(":");
     retVal.append(TokenTypeToString(Type));
     retVal.append(")");
@@ -166,6 +168,7 @@ Lexer::Lexer(std::string source)
         _start = _current;
         Next();
     }
+    TrimNewlines();
     _tokenBuffer.push_back({ TokenType::EndOfFile, _line });
     return _tokenBuffer;
 }
@@ -198,6 +201,10 @@ auto Lexer::Next() -> void {
         break;
     case ',':
         AddToken(TokenType::Comma);
+        break;
+    case '#':
+        for (c = NextCharacter(); c != '\n'; c = NextCharacter());
+        --_current;
         break;
     case '=':
         AddToken(TokenType::Equals);
@@ -289,7 +296,7 @@ auto Lexer::Number() -> void {
 
     while (std::isdigit(Peek()))
         c = NextCharacter();
-    
+
     if (Peek() == '.' && std::isdigit(PeekNext())) {
         isFloat = true;
         c = NextCharacter();
@@ -298,6 +305,8 @@ auto Lexer::Number() -> void {
     }
 
     std::string res{ _src.data() + _start, _src.data() + _current };
+
+    // TODO: Fix nonzero literals starting with zeroes
     try {
         if (isFloat)
             AddToken(TokenType::FloatLiteral, std::stod(res));
@@ -341,6 +350,14 @@ auto Lexer::Identifier() -> void {
     }
 
     AddToken(TokenType::Id);
+}
+
+auto Lexer::TrimNewlines() -> void {
+    auto res = std::find_if(_tokenBuffer.rbegin(), _tokenBuffer.rend(), [](const auto& t) -> bool {
+        return t.Type != TokenType::Newline;
+    });
+
+    _tokenBuffer.erase(res.base(), _tokenBuffer.end());
 }
 
 }

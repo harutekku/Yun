@@ -121,7 +121,7 @@ auto VM::Run() -> void {
     int32_t srcIndex;
     int32_t size;
 
-    uint8_t              rawOp;
+    uint8_t rawOp;
     Instructions::Opcode op;
 
     do {
@@ -133,13 +133,13 @@ auto VM::Run() -> void {
 
         if (auto res = Instructions::OpcodeCount(op); res == 1) {
             if (Instructions::IsJump(op) || op == Instructions::Opcode::call) {
-                if (auto int24 = *pc & 0x00FFFFFF; int24 & 0x800000)
+                if (auto int24 = *pc & 0x00FFFFFF; (int24 & 0x800000) && op != Instructions::Opcode::call)
                     destIndex = int24 | 0xFF000000;
                 else
                     destIndex = int24;
                 destIndex >>= 2;
             } else
-                destIndex = (*pc & 0x00FFF000) >> 12;
+                destIndex = ((*pc & 0x00FFF000) >> 12) + _callStack.RelativeOffset();
             srcIndex  = 0;
         } else if (res == 2) {
             destIndex = ((*pc & 0x00FFF000) >> 12) + _callStack.RelativeOffset();
@@ -773,7 +773,7 @@ auto VM::Run() -> void {
             const auto& srcRegister = _registers[srcIndex];
             if (srcRegister.Typeof() != Primitives::Type::Reference)
                 ReportError("Invalid type for arraycount");
-            else if (destRegister.Typeof() == Primitives::Type::Reference)
+            if (destRegister.Typeof() == Primitives::Type::Reference)
                 _heap.Notify(srcRegister.As<Primitives::Reference>().HeapID, false);
 
 
@@ -785,15 +785,13 @@ auto VM::Run() -> void {
             auto& destRegister = _registers[destIndex];
             const auto& srcRegister = _registers[srcIndex];
 
-            if (destRegister.Typeof() != Primitives::Type::Reference)
+            if (destRegister.Typeof() == Primitives::Type::Reference)
+                _heap.Notify(destRegister.As<Primitives::Reference>().HeapID, false);
+            if (srcRegister.Typeof() != Primitives::Type::Reference)
                 ReportError("Invalid type for load (expected a reference)");
-            else if (srcRegister.Typeof() != Primitives::Type::Uint32)
-                ReportError("Invalid type for load (expected uint32)");
-            else if (srcRegister.Typeof() == Primitives::Type::Reference)
-                _heap.Notify(srcRegister.As<Primitives::Reference>().HeapID, false);
 
-            auto arrayPtr = _heap.GetArray(destRegister.As<Primitives::Reference>().HeapID);
-            destRegister.Assign(arrayPtr->Load(srcRegister.As<uint32_t>()));
+            auto arrayPtr = _heap.GetArray(srcRegister.As<Primitives::Reference>().HeapID);
+            destRegister.Assign(arrayPtr->Load(srcRegister.As<Primitives::Reference>().ArrayIndex));
             break;
         }
         case Instructions::Opcode::store: {
@@ -801,8 +799,6 @@ auto VM::Run() -> void {
             const auto& srcRegister = _registers[srcIndex];
             if (destRegister.Typeof() != Primitives::Type::Reference)
                 ReportError("Invalid type for store (expected a reference)");
-            else if (srcRegister.Typeof() != Primitives::Type::Uint32)
-                ReportError("Invalid type for store (expected uint32)");
             auto arrayPtr = _heap.GetArray(destRegister.As<Primitives::Reference>().HeapID);
             arrayPtr->Store(destRegister.As<Primitives::Reference>().ArrayIndex, srcRegister);
             break;
@@ -840,7 +836,6 @@ auto VM::Run() -> void {
 
 auto VM::ReportError(std::string_view message) const -> void {
     std::puts(message.data());
-
     exit(EXIT_FAILURE);
 }
 

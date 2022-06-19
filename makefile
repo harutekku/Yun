@@ -38,7 +38,7 @@ DEPFILES         := $(SRCFILES:%.$(SRCEXT)=$(DEPDIR)/%.d)
 
 # Target
 #-----------------------------------------------------------
-export TARGET    := program
+export TARGET    := yvm
 
 # Final commands
 #-----------------------------------------------------------

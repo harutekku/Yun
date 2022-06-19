@@ -74,11 +74,16 @@ class AllocationError : public std::runtime_error {
         ~AllocationError() noexcept = default;
 };
 
-class VMError : public std::runtime_error {
+class VMError : public std::exception {
     public:
-        VMError(const char* message);
+        VMError(std::string);
 
         ~VMError() noexcept = default;
+    public:
+        [[nodiscard]] auto what() const noexcept -> const char* override;
+
+    private:
+        std::string _message;
 };
 
 class RangeError : public std::exception {

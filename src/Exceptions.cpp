@@ -76,8 +76,12 @@ AllocationError::AllocationError(const char* message)
     :std::runtime_error(message) {
 }
 
-VMError::VMError(const char* message)
-    :std::runtime_error(message) {
+VMError::VMError(std::string message)
+    :_message{ std::move(message) } {
+}
+
+[[nodiscard]] auto VMError::what() const noexcept -> const char* {
+    return _message.c_str();
 }
 
 RangeError::RangeError(std::string message, size_t index, size_t count)

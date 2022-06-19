@@ -1,0 +1,179 @@
+file                = { function }
+                    ;
+
+function            = functionDeclaration block
+                    ;
+
+functionDeclaration = attributes 'function' identifier '()' 
+                    ;
+    
+block               = '{' '\n' { line } line '}'
+                    ;
+
+(*****************************************************************************)
+line                = ([ identifier ':' ] | instruction [ operand [ ',' operand ] ]) '\n'
+                    ;
+
+(*****************************************************************************)
+attributes          = '[' attribute { ',' attribute } ']' '\n'
+                    ;
+
+attribute           = registersAttribute
+                    | parametersAttribute
+                    | returnsAttribute
+                    ;
+
+registersAttribute  = 'registers' '=' intValue
+                    ;
+parametersAttribute = 'parameters' '=' intValue
+                    ;
+returnsAttribute    = 'returns' '=' booleanValue
+                    ;
+
+value               = intValue
+                    | booleanValue
+                    ;
+
+(*****************************************************************************)
+intValue            = nonzeroDigit { digit }
+                    ;
+
+nonzeroDigit        = '1' | '2' | '3' | '4' | '5' 
+                    | '6' | '7' | '8' | '9' ;
+digit               = nonzeroDigit
+                    | '0'
+                    ;
+
+booleanValue        = 'true'
+                    | 'false'
+                    ;
+
+identifier          = 'a-zA-Z' { 'a-zA-Z0-9' }
+                    ;
+
+(*****************************************************************************)
+operand             = register
+                    | value
+                    | identifier
+                    ;
+
+register            = 'R' intValue
+                    ;
+
+(*****************************************************************************)
+instruction         = 'i32add'
+                    | 'i32sub'
+                    | 'i32mul'
+                    | 'i32div'
+                    | 'i32rem'
+                    | 'i32and'
+                    | 'i32or'
+                    | 'i32xor'
+                    | 'i32shl'
+                    | 'i32shr'
+                    | 'i64add'
+                    | 'i64sub'
+                    | 'i64mul'
+                    | 'i64div'
+                    | 'i64rem'
+                    | 'i64and'
+                    | 'i64or'
+                    | 'i64xor'
+                    | 'i64shl'
+                    | 'i64shr'
+                    | 'u32add'
+                    | 'u32sub'
+                    | 'u32mul'
+                    | 'u32div'
+                    | 'u32rem'
+                    | 'u32and'
+                    | 'u32or'
+                    | 'u32xor'
+                    | 'u32shl'
+                    | 'u32shr'
+                    | 'u64add'
+                    | 'u64sub'
+                    | 'u64mul'
+                    | 'u64div'
+                    | 'u64rem'
+                    | 'u64and'
+                    | 'u64or'
+                    | 'u64xor'
+                    | 'u64shl'
+                    | 'u64shr'
+                    | 'f32add'
+                    | 'f32sub'
+                    | 'f32mul'
+                    | 'f32div'
+                    | 'f32rem'
+                    | 'f64add'
+                    | 'f64sub'
+                    | 'f64mul'
+                    | 'f64div'
+                    | 'f64rem'
+                    | 'cmp'
+                    | 'icmp'
+                    | 'fcmp'
+                    | 'ldconst'
+                    | 'mov'
+                    | 'newarray'
+                    | 'load'
+                    | 'store'
+                    | 'advance'
+                    | 'arraycount'
+                    | 'bnot'
+                    | 'i32neg'
+                    | 'i64neg'
+                    | 'f32neg'
+                    | 'f64neg'
+                    | 'convi32toi8'
+                    | 'convi32toi16'
+                    | 'convu32tou8'
+                    | 'convu32tou16'
+                    | 'convi32toi64'
+                    | 'convi32tou64'
+                    | 'convi32tou32'
+                    | 'convi32tof32'
+                    | 'convi32tof64'
+                    | 'convi64toi32'
+                    | 'convi64tou32'
+                    | 'convi64tou64'
+                    | 'convi64tof32'
+                    | 'convi64tof64'
+                    | 'convu32toi64'
+                    | 'convu32tou64'
+                    | 'convu32toi32'
+                    | 'convu32tof32'
+                    | 'convu32tof64'
+                    | 'convu64toi64'
+                    | 'convu64tou32'
+                    | 'convu64toi32'
+                    | 'convu64tof32'
+                    | 'convu64tof64'
+                    | 'convf32toi32'
+                    | 'convf32toi64'
+                    | 'convf32tou32'
+                    | 'convf32tof64'
+                    | 'convf32tou64'
+                    | 'convf64toi32'
+                    | 'convf64toi64'
+                    | 'convf64tou32'
+                    | 'convf64tou64'
+                    | 'convf64tof32'
+                    | 'jmp'
+                    | 'je'
+                    | 'jne'
+                    | 'jgt'
+                    | 'jge'
+                    | 'jlt'
+                    | 'jle'
+                    | 'call'
+                    | 'printreg'
+                    | 'nop'
+                    | 'hlt'
+                    | 'ret'
+                    ;
+
+(*****************************************************************************)
+skip                = '#' { . }
+                    ;

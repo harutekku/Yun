@@ -1,0 +1,18 @@
+[registers=2]
+function main() {
+	ldconst R0, -1
+	ldconst R1, 2.0
+	call ConvertFirst
+	printreg R0
+	printreg R1
+	ret
+}
+
+[registers=2, parameters=2]
+function ConvertFirst()
+{
+    convi64tou64 R0
+	printreg R0
+	printreg R1
+	ret
+}

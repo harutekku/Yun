@@ -57,7 +57,7 @@ auto FunctionBuilder::AddLabel(std::string label) -> void {
 
     // If failed, report a redefinition error
     if (!success)
-        throw Error::AssemblerError{ "Label redefinition: found " + label + " at ", it->second };
+        throw Error::AssemblerError{ "Label redefinition: found " + label, it->second };
 }
 
 auto FunctionBuilder::AddJump(VM::Instructions::Opcode opcode, std::string label) -> void {

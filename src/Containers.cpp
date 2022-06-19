@@ -126,14 +126,14 @@ auto Symbol::PrettyFunctionSignature() const -> std::string {
     for (size_t i = 0; i != _symbols.size(); ++i)
         if (_symbols[i].Name == name)
             return _symbols[i];
-    throw Error::VMError{ "No such symbol exists in symbol table" };
+    throw Error::VMError{ std::string("Symbol '") + std::string(name.begin(), name.end()) + "' doesn't exist in the symbol table" };
 }
 
 [[nodiscard]] auto SymbolTable::FindByLocation(uint32_t location) const -> const Symbol& {
     for (size_t i = 0; i != _symbols.size(); ++i)
         if (_symbols[i].Start == location)
             return _symbols[i];
-    throw Error::VMError{ "No such symbol exists in symbol table" };
+    throw Error::VMError{ std::string("Symbol at @") + std::to_string(location) + " doesn't exists in the symbol table" };
 }
 
 [[nodiscard]] auto SymbolTable::At(size_t index) const -> const Symbol& {
@@ -173,7 +173,7 @@ Array::Array(Primitives::Type type, size_t count) noexcept
 }
 
 [[nodiscard]] auto Array::Load(size_t index) -> Primitives::Value {
-    if (index > _count)
+    if (index >= _count)
         throw Error::RangeError{ "Index was higher than count: ", index, _count };
 
     Primitives::Value retVal{ _elementType };
@@ -182,10 +182,12 @@ Array::Array(Primitives::Type type, size_t count) noexcept
 }
 
 auto Array::Store(size_t index, Primitives::Value value) -> void {
-    if (index > _count)
+    if (index >= _count)
         throw Error::RangeError{ "Index was higher than element count: ", index, _count };
+    else if (_elementType != value.Typeof())
+        throw Error::TypeError{ "Store of value with incompatible type", value.Typeof(), _elementType };
 
-    _elements[index] = value.As<uint64_t>();
+    std::memcpy(&_elements[index], value.AsPtr(), sizeof(uint64_t));
 }
 
 auto Array::Advance(Primitives::Reference& reference, uint32_t offset) -> void {

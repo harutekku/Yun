@@ -6,6 +6,7 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
+#include <algorithm>
 
 namespace Yun::Interpreter {
     enum class TokenType : uint8_t {
@@ -153,6 +154,8 @@ namespace Yun::Interpreter {
 
             auto Number() -> void;
             auto Identifier() -> void;
+
+            auto TrimNewlines() -> void;
 
         private:
             std::string        _src;
